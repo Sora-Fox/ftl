@@ -1,29 +1,47 @@
-BasedOnStyle: WebKit
+BasedOnStyle: LLVM
 ColumnLimit: 80
 
 IndentWidth: 2
 TabWidth: 2
 UseTab: Never
-NamespaceIndentation: All
 AccessModifierOffset: -2
 IndentAccessModifiers: false
+IndentPPDirectives: AfterHash
+IndentWrappedFunctionNames: false
 ConstructorInitializerIndentWidth: 2
 MaxEmptyLinesToKeep: 1
 
+NamespaceIndentation: All
+FixNamespaceComments: false
+CompactNamespaces: false
+
 BinPackArguments: true
 BinPackParameters: true
-SpaceBeforeAssignmentOperators: true
+Cpp11BracedListStyle: false
 
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true 
+SpaceInEmptyParentheses: false
+SpacesInAngles: false
+
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignConsecutiveMacros: false
+AlignTrailingComments: true
+AlignEscapedNewlines: Left
 PointerAlignment: Left
 AlignAfterOpenBracket: DontAlign
+
 AllowShortFunctionsOnASingleLine: Inline
 AllowShortBlocksOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AllowAllArgumentsOnNextLine: false
-
-ConstructorInitializerAllOnOneLineOrOnePerLine: false
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+AllowAllConstructorInitializersOnNextLine: false
 
 AlwaysBreakTemplateDeclarations: Yes
 BreakConstructorInitializers: AfterColon
@@ -38,9 +56,6 @@ BraceWrapping:
   AfterNamespace: false
 PenaltyBreakBeforeFirstCallParameter: 1000
 PenaltyReturnTypeOnItsOwnLine: 0
-
-FixNamespaceComments: false
-InsertNewlineAtEOF: true
 
 IncludeBlocks: Preserve
 IncludeCategories:
