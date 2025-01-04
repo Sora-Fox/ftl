@@ -2,4 +2,3 @@
 #define FTL_CORE_HPP
 
 #endif
-
