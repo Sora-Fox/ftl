@@ -37,9 +37,10 @@ BraceWrapping:
   AfterStruct: true
   AfterNamespace: false
 PenaltyBreakBeforeFirstCallParameter: 1000
-PenaltyReturnTypeOnItsOwnLine: 00
+PenaltyReturnTypeOnItsOwnLine: 0
 
 FixNamespaceComments: false
+InsertNewlineAtEOF: true
 
 IncludeBlocks: Preserve
 IncludeCategories:
