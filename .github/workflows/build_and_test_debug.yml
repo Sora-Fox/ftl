@@ -27,10 +27,11 @@ jobs:
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5
 
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y clang clang-tidy
+      - name: Set up Clang
+        uses: egor-tensin/setup-clang@v1
+        with:
+          version: latest
+          platform: x64
 
       - name: Build Project
         uses: threeal/cmake-action@v2
