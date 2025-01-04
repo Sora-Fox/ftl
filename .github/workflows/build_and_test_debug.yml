@@ -1,0 +1,82 @@
+name: Build and Test (Debug)
+on: [push, pull_request]
+
+jobs:
+  code_format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y clang-format
+
+      - name: Check code formatting
+        run: |
+          find . \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \) \
+          -exec clang-format --dry-run --Werror --style="file:.clang-format" {} +
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [g++, clang++]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y clang clang-tidy
+
+      - name: Build Project
+        uses: threeal/cmake-action@v2
+        with:
+          build-dir: build
+          generator: Ninja
+          cxx-compiler: ${{ matrix.compiler }}
+          options: |
+            CMAKE_EXPORT_COMPILE_COMMANDS=ON
+            FTL_ENABLE_TESTS=ON
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact
+          path: ${{ github.workspace }}/build
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifact
+          path: ${{ github.workspace }}/build
+
+      - name: Run Tests
+        working-directory: ${{ github.workspace }}/build
+        run: chmod +x src/tests/* && ctest --output-on-failure
+
+  static_analysis:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifact
+          path: ${{ github.workspace }}/build
+
+      - name: Run static analysis
+        run: |
+          find . \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \) \
+          -not -path "./build/*" -not -path "./tests/*" -exec \
+          clang-tidy -p build -header-filter=".*" --warnings-as-errors="*" {} +
+

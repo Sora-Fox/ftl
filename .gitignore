@@ -1,0 +1,7 @@
+build
+CMakeUserPresets.json
+
+.cache
+*.tmp
+
+
