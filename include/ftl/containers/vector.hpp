@@ -119,14 +119,284 @@ namespace ftl {
   };
 
   template <typename T, typename Allocator>
-  void swap(vector<T, Allocator>&, vector<T, Allocator>&) noexcept;
+  vector<T, Allocator>::vector(const vector&)
+  {
+    /* TODO: Implement this method */
+  }
 
   template <typename T, typename Allocator>
-  bool operator==(const vector<T, Allocator>&, const vector<T, Allocator>&);
+  vector<T, Allocator>::vector(vector&&) noexcept
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  vector<T, Allocator>::vector(const allocator_type&)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  vector<T, Allocator>::vector(size_type, const allocator_type&)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  vector<T, Allocator>::vector(size_type, const_reference,
+      const allocator_type&)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  template <typename InputIt> /* TODO: Add SFINAE */
+  vector<T, Allocator>::vector(InputIt, InputIt)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  vector<T, Allocator>::vector(std::initializer_list<value_type>,
+      const allocator_type&)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  vector<T, Allocator>::~vector()
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  vector<T, Allocator>& vector<T, Allocator>::operator=(const vector&) &
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  vector<T, Allocator>& vector<T, Allocator>::operator=(vector&&) & noexcept
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  typename vector<T, Allocator>::reference
+  vector<T, Allocator>::operator[](size_type) noexcept
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  typename vector<T, Allocator>::const_reference
+  vector<T, Allocator>::operator[](size_type) const noexcept
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  void vector<T, Allocator>::reserve(size_type)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  void vector<T, Allocator>::resize(size_type, const_reference)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  void vector<T, Allocator>::shrink_to_fit()
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  void vector<T, Allocator>::clear() noexcept
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  void vector<T, Allocator>::swap(vector&) noexcept
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  void vector<T, Allocator>::push_back(const_reference)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  void vector<T, Allocator>::pop_back()
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  typename vector<T, Allocator>::reference vector<T, Allocator>::at(size_type)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  typename vector<T, Allocator>::const_reference
+  vector<T, Allocator>::at(size_type) const
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  void vector<T, Allocator>::assign(size_type, const_reference)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  template <typename InputIt> /* TODO: Add SFINAE */
+  void vector<T, Allocator>::assign(InputIt, InputIt)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  void vector<T, Allocator>::assign(std::initializer_list<value_type>)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  typename vector<T, Allocator>::iterator
+  vector<T, Allocator>::insert(const_iterator, const_reference)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  typename vector<T, Allocator>::iterator
+  vector<T, Allocator>::insert(const_iterator, size_type, const_reference)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  template <typename InputIt> /* TODO: Add SFINAE */
+  typename vector<T, Allocator>::iterator
+  vector<T, Allocator>::insert(const_iterator, InputIt, InputIt)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  typename vector<T, Allocator>::iterator
+  vector<T, Allocator>::insert(const_iterator,
+      std::initializer_list<value_type>)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  template <typename... Args>
+  typename vector<T, Allocator>::iterator
+  vector<T, Allocator>::emplace(const_iterator, Args&&...)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  template <typename... Args>
+  void vector<T, Allocator>::emplace_back(Args&&...)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  typename vector<T, Allocator>::iterator
+  vector<T, Allocator>::erase(const_iterator)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  typename vector<T, Allocator>::iterator
+  vector<T, Allocator>::erase(const_iterator, const_iterator)
+  {
+    /* TODO: Implement this method */
+  }
+
+  template <typename T, typename Allocator>
+  typename vector<T, Allocator>::const_reverse_iterator
+  vector<T, Allocator>::crbegin() const noexcept
+  {
+    return reverse_iterator(end());
+  }
+
+  template <typename T, typename Allocator>
+  typename vector<T, Allocator>::const_reverse_iterator
+  vector<T, Allocator>::crend() const noexcept
+  {
+    return reverse_iterator(begin());
+  }
+
+  template <typename T, typename Allocator>
+  typename vector<T, Allocator>::size_type
+  vector<T, Allocator>::max_size() const noexcept
+  {
+    /* TODO: Implement this method */
+    // return std::max(static_cast<size_type>(-1) / sizeof(value_type),
+    // alloc_().max_size);
+  }
+
+  template <typename T, typename Allocator>
+  typename vector<T, Allocator>::pointer&
+  vector<T, Allocator>::end_cap_() noexcept
+  {
+    return end_cap_alloc_.first();
+  }
+
+  template <typename T, typename Allocator>
+  const typename vector<T, Allocator>::pointer&
+  vector<T, Allocator>::end_cap_() const noexcept
+  {
+    return end_cap_alloc_.first();
+  }
+
+  template <typename T, typename Allocator>
+  typename vector<T, Allocator>::allocator_type&
+  vector<T, Allocator>::alloc_() noexcept
+  {
+    return end_cap_alloc_.second();
+  }
+
+  template <typename T, typename Allocator>
+  const typename vector<T, Allocator>::allocator_type&
+  vector<T, Allocator>::alloc_() const noexcept
+  {
+    return end_cap_alloc_.second();
+  }
+
+  template <typename T, typename Allocator>
+  void swap(vector<T, Allocator>&, vector<T, Allocator>&) noexcept
+  {
+    /* TODO: Implement this function */
+  }
+
+  template <typename T, typename Allocator>
+  bool operator==(const vector<T, Allocator>&, const vector<T, Allocator>&)
+  {
+    /* TODO: Implement this function */
+  }
 
 #if !defined(FTL_CPP20_FEATURES)
   template <typename T, typename Allocator>
-  bool operator!=(const vector<T, Allocator>&, const vector<T, Allocator>&);
+  bool operator!=(const vector<T, Allocator>&, const vector<T, Allocator>&)
+  {
+    /* TODO: Implement this function */
+  }
 #endif
 }
 
