@@ -57,8 +57,8 @@ public:
   using Base1 = compressed_pair_element<T1, 0>;
   using Base2 = compressed_pair_element<T2, 1>;
 
-  compressed_pair() : Base1(), Base2() {};
-  compressed_pair(const T1& t1, const T2& t2) : Base1(t1), Base2(t2) {};
+  compressed_pair() : Base1(), Base2() {}
+  compressed_pair(const T1& t1, const T2& t2) : Base1(t1), Base2(t2) {}
 
   T1& first() noexcept { return static_cast<Base1>(*this).get(); }
   const T1& first() const noexcept { return static_cast<Base1>(*this).get(); }

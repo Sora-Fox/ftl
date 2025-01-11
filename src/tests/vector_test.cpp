@@ -294,4 +294,3 @@ namespace test {
   // TODO: Think: should we add tests for: size(), capacity(), max_size(),
   // empty(), [c|r]begin(), [c|r]end(), front(), back(), data() ?
 }
-
