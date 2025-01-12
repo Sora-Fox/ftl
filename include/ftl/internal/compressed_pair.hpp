@@ -7,11 +7,13 @@
 
 #include <cstddef>
 #include <type_traits>
+#include <utility>
 
 namespace ftl {
   namespace detail {
 
-    template <typename, size_t, bool>
+    template <typename T, size_t,
+        bool isEmpty = std::is_empty<T>::value && !std::is_final<T>::value>
     class compressed_pair_element;
 
     template <typename, typename>
@@ -22,30 +24,37 @@ namespace ftl {
   }
 }
 
-template <typename T, size_t,
-    bool isEmpty = std::is_empty<T>::value && !std::is_final<T>::value>
-class ftl::detail::compressed_pair_element
+template <typename T, size_t Index>
+class ftl::detail::compressed_pair_element<T, Index, false>
 {
+private:
+  T value_;
+
 public:
   compressed_pair_element() = default;
-  compressed_pair_element(const T& val) : value_(val) {}
+
+  template <typename U>
+  explicit compressed_pair_element(U&& val) : value_(std::forward<U>(val))
+  {
+  }
 
   T& get() noexcept { return value_; }
   const T& get() const noexcept { return value_; }
-
-private:
-  T value_;
 };
 
 template <typename T, size_t Index>
 class ftl::detail::compressed_pair_element<T, Index, true> : private T
 {
 public:
-  compressed_pair_element() : T() {}
-  compressed_pair_element(const T& val) : T(val) {}
+  compressed_pair_element() = default;
 
-  T& get() noexcept { return static_cast<T>(*this); }
-  const T& get() const noexcept { return static_cast<T>(*this); }
+  template <typename U>
+  explicit compressed_pair_element(U&& val) : T(std::forward<U>(val))
+  {
+  }
+
+  T& get() noexcept { return *this; }
+  const T& get() const noexcept { return *this; }
 };
 
 template <typename T1, typename T2>
@@ -53,18 +62,61 @@ class ftl::detail::compressed_pair final :
   private compressed_pair_element<T1, 0>,
   private compressed_pair_element<T2, 1>
 {
-public:
+private:
   using Base1 = compressed_pair_element<T1, 0>;
   using Base2 = compressed_pair_element<T2, 1>;
 
-  compressed_pair() : Base1(), Base2() {}
-  compressed_pair(const T1& t1, const T2& t2) : Base1(t1), Base2(t2) {}
+public:
+  compressed_pair() = default;
 
-  T1& first() noexcept { return static_cast<Base1>(*this).get(); }
-  const T1& first() const noexcept { return static_cast<Base1>(*this).get(); }
+  template <typename U1, typename U2>
+  explicit compressed_pair(U1&& first, U2&& second) :
+    Base1(std::forward<U1>(first)),
+    Base2(std::forward<U2>(second))
+  {
+  }
 
-  T2& second() noexcept { return static_cast<Base2>(*this).get(); }
-  const T2& second() const noexcept { return static_cast<Base2>(*this).get(); }
+  compressed_pair(const compressed_pair& rhs) :
+    Base1(rhs.first()),
+    Base2(rhs.second())
+  {
+  }
+
+  compressed_pair(compressed_pair&& rhs) noexcept :
+    Base1(std::move(rhs.first())),
+    Base2(std::move(rhs.second()))
+  {
+  }
+
+  compressed_pair& operator=(const compressed_pair& rhs)
+  {
+    if (this != &rhs) {
+      first() = rhs.first();
+      second() = rhs.second();
+    }
+    return *this;
+  }
+
+  compressed_pair& operator=(compressed_pair&& rhs) noexcept
+  {
+    if (this != &rhs) {
+      first() = std::move(rhs.first());
+      second() = std::move(rhs.second());
+    }
+    return *this;
+  }
+
+  T1& first() noexcept { return static_cast<Base1&>(*this).get(); }
+  const T1& first() const noexcept
+  {
+    return static_cast<const Base1&>(*this).get();
+  }
+
+  T2& second() noexcept { return static_cast<Base2&>(*this).get(); }
+  const T2& second() const noexcept
+  {
+    return static_cast<const Base2&>(*this).get();
+  }
 
   void swap(const compressed_pair& rhs) noexcept
   {
