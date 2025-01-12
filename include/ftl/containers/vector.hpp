@@ -71,7 +71,7 @@ namespace ftl {
     vector(size_type, const_reference,
         const allocator_type& = allocator_type());
     template <typename InputIt, detail::enable_if_input_iterator<InputIt> = 0>
-    vector(InputIt, InputIt);
+    vector(InputIt, InputIt, const allocator_type& = allocator_type());
     vector(std::initializer_list<value_type>,
         const allocator_type& = allocator_type());
     ~vector();
@@ -139,6 +139,8 @@ namespace ftl {
     pointer end_;
     detail::compressed_pair<pointer, allocator_type> end_cap_alloc_;
 
+    class Deleter;
+
     pointer& end_cap_() noexcept;
     allocator_type& alloc_() noexcept;
     const pointer& end_cap_() const noexcept;
@@ -146,54 +148,87 @@ namespace ftl {
   };
 
   template <typename T, typename Allocator>
-  vector<T, Allocator>::vector(const vector&)
+  vector<T, Allocator>::vector(const vector& rhs) : vector(rhs.alloc_())
   {
-    /* TODO: Implement this method */
+    /* TODO: Should we allocate degree of 2 here instead of given size */
+    /* TODO: Check max_size here */
+    begin_ = alloc_().allocate(rhs.size());
+    end_ = begin_;
+    end_cap_() = begin_ + rhs.size();
+    detail::exception_guard<Deleter> guard(Deleter(*this));
+    /* TODO: Refactor */
+    for (auto i = rhs.begin_; end_ != begin_ + rhs.size(); ++end_, ++i) {
+      AllocTraits_::construct(alloc_(), end_, *i);
+    }
+    guard.complete();
   }
 
   template <typename T, typename Allocator>
-  vector<T, Allocator>::vector(vector&&) noexcept
+  vector<T, Allocator>::vector(vector&& rhs) noexcept :
+    begin_(std::exchange(rhs.begin_, nullptr)),
+    end_(std::exchange(rhs.end_, nullptr)),
+    end_cap_alloc_(std::move(rhs.end_cap_alloc_))
+  /* TODO: ensure compressed_pair has correct move constructor */
   {
-    /* TODO: Implement this method */
   }
 
   template <typename T, typename Allocator>
-  vector<T, Allocator>::vector(const allocator_type&)
+  vector<T, Allocator>::vector(const allocator_type& alloc) :
+    begin_(nullptr),
+    end_(nullptr),
+    end_cap_alloc_(nullptr, alloc)
   {
-    /* TODO: Implement this method */
   }
 
   template <typename T, typename Allocator>
-  vector<T, Allocator>::vector(size_type, const allocator_type&)
+  vector<T, Allocator>::vector(size_type size, const allocator_type& alloc) :
+    vector(size, value_type(), alloc)
   {
-    /* TODO: Implement this method */
   }
 
   template <typename T, typename Allocator>
-  vector<T, Allocator>::vector(size_type, const_reference,
-      const allocator_type&)
+  vector<T, Allocator>::vector(size_type size, const_reference value,
+      const allocator_type& alloc) :
+    vector(alloc)
   {
-    /* TODO: Implement this method */
+    /* TODO: Should we allocate degree of 2 here instead of given size */
+    /* TODO: Check max_size here */
+    begin_ = alloc_().allocate(size);
+    end_ = begin_;
+    end_cap_() = begin_ + size;
+    detail::exception_guard<Deleter> guard(Deleter(*this));
+    /* TODO: Refactor */
+    for (; end_ != begin_ + size; ++end_) {
+      AllocTraits_::construct(alloc_(), end_, value);
+    }
+    guard.complete();
   }
 
   template <typename T, typename Allocator>
   template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
-  vector<T, Allocator>::vector(InputIt, InputIt)
+  vector<T, Allocator>::vector(InputIt first, InputIt last,
+      const allocator_type& alloc) :
+    vector(alloc)
   {
-    /* TODO: Implement this method */
+    detail::exception_guard<Deleter> guard(Deleter(*this));
+    for (; first != last; ++first) {
+      push_back(*first);
+    }
+    guard.complete();
   }
 
   template <typename T, typename Allocator>
-  vector<T, Allocator>::vector(std::initializer_list<value_type>,
-      const allocator_type&)
+  vector<T, Allocator>::vector(std::initializer_list<value_type> list,
+      const allocator_type& alloc) :
+    vector(list.begin(), list.end(), alloc)
   {
-    /* TODO: Implement this method */
   }
 
   template <typename T, typename Allocator>
   vector<T, Allocator>::~vector()
   {
-    /* TODO: Implement this method */
+    clear();
+    AllocTraits_::deallocate(alloc_(), begin_, capacity());
   }
 
   template <typename T, typename Allocator>
@@ -243,7 +278,9 @@ namespace ftl {
   template <typename T, typename Allocator>
   void vector<T, Allocator>::clear() noexcept
   {
-    /* TODO: Implement this method */
+    for (; end_ != begin_; --end_) {
+      AllocTraits_::destroy(alloc_(), end_ - 1);
+    }
   }
 
   template <typename T, typename Allocator>
@@ -374,9 +411,23 @@ namespace ftl {
   vector<T, Allocator>::max_size() const noexcept
   {
     /* TODO: Implement this method */
-    // return std::max(static_cast<size_type>(-1) / sizeof(value_type),
-    // alloc_().max_size);
+    // return alloc_().max_size();
   }
+
+  template <typename T, typename Allocator>
+  class vector<T, Allocator>::Deleter
+  {
+  public:
+    Deleter(vector& v) : v_(v) {}
+    void operator()()
+    {
+      v_.clear();
+      AllocTraits_::deallocate(v_.alloc_(), v_.begin_, v_.capacity());
+    }
+
+  private:
+    vector& v_;
+  };
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::pointer&
