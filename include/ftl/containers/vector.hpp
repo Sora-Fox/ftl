@@ -8,9 +8,36 @@
 #include <initializer_list>
 #include <iterator>
 #include <memory>
+#include <type_traits>
+#include <utility>
 #include "../internal/compressed_pair.hpp"
 #include "../internal/exception_guard.hpp"
 #include "../internal/wrap_iterator.hpp"
+
+namespace ftl {
+  namespace detail {
+
+    template <typename...>
+    using void_t = void;
+
+    template <typename T, typename = void>
+    struct is_input_iterator : std::false_type
+    {
+    };
+
+    template <typename T>
+    struct is_input_iterator<T,
+        void_t<typename std::iterator_traits<T>::iterator_category>> :
+      std::is_base_of<std::input_iterator_tag,
+          typename std::iterator_traits<T>::iterator_category>
+    {
+    };
+
+    template <typename Iterator>
+    using enable_if_input_iterator =
+        typename std::enable_if<is_input_iterator<Iterator>::value, int>::type;
+  }
+}
 
 namespace ftl {
 
@@ -43,7 +70,7 @@ namespace ftl {
     vector(size_type, const allocator_type& = allocator_type());
     vector(size_type, const_reference,
         const allocator_type& = allocator_type());
-    template <typename InputIt> /* TODO: Add SFINAE */
+    template <typename InputIt, detail::enable_if_input_iterator<InputIt> = 0>
     vector(InputIt, InputIt);
     vector(std::initializer_list<value_type>,
         const allocator_type& = allocator_type());
@@ -67,13 +94,13 @@ namespace ftl {
     const_reference at(size_type) const;
 
     void assign(size_type, const_reference);
-    template <typename InputIt> /* TODO: Add SFINAE */
+    template <typename InputIt, detail::enable_if_input_iterator<InputIt> = 0>
     void assign(InputIt, InputIt);
     void assign(std::initializer_list<value_type>);
 
     iterator insert(const_iterator, const_reference);
     iterator insert(const_iterator, size_type, const_reference);
-    template <typename InputIt> /* TODO: Add SFINAE */
+    template <typename InputIt, detail::enable_if_input_iterator<InputIt> = 0>
     iterator insert(const_iterator, InputIt, InputIt);
     iterator insert(const_iterator, std::initializer_list<value_type>);
 
@@ -150,7 +177,7 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  template <typename InputIt> /* TODO: Add SFINAE */
+  template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
   vector<T, Allocator>::vector(InputIt, InputIt)
   {
     /* TODO: Implement this method */
@@ -257,7 +284,7 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  template <typename InputIt> /* TODO: Add SFINAE */
+  template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
   void vector<T, Allocator>::assign(InputIt, InputIt)
   {
     /* TODO: Implement this method */
@@ -284,7 +311,7 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  template <typename InputIt> /* TODO: Add SFINAE */
+  template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
   typename vector<T, Allocator>::iterator
   vector<T, Allocator>::insert(const_iterator, InputIt, InputIt)
   {
