@@ -144,9 +144,17 @@ namespace ftl {
     class Deleter;
 
     void allocate(size_type);
+    void deallocate() noexcept;
+
     template <typename... Args>
     void construct_at_end(Args&&...);
     void destroy_at_end() noexcept;
+
+    void expand_storage(size_type);
+    size_type growth_capacity(size_type) const;
+
+    void throw_out_of_range() const { throw std::out_of_range(""); } // TODO
+    void throw_length_error() const { throw std::length_error(""); } // TODO
 
     pointer& end_cap_() noexcept;
     allocator_type& alloc_() noexcept;
@@ -208,7 +216,7 @@ namespace ftl {
   {
     detail::exception_guard<Deleter> guard(Deleter(*this));
     for (; first != last; ++first) {
-      push_back(*first);
+      emplace_back(*first);
     }
     guard.complete();
   }
@@ -229,8 +237,7 @@ namespace ftl {
   template <typename T, typename Allocator>
   vector<T, Allocator>::~vector()
   {
-    clear();
-    AllocTraits_::deallocate(alloc_(), begin_, capacity());
+    deallocate();
   }
 
   template <typename T, typename Allocator>
@@ -244,10 +251,7 @@ namespace ftl {
   template <typename T, typename Allocator>
   vector<T, Allocator>& vector<T, Allocator>::operator=(vector&& rhs) & noexcept
   {
-    /* TODO: code duplicating: Deleter::operator()(), ~vector() */
-    clear();
-    AllocTraits_::deallocate(alloc_(), begin_, capacity());
-
+    deallocate();
     swap(rhs);
     return *this;
   }
@@ -267,9 +271,15 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  void vector<T, Allocator>::reserve(size_type)
+  void vector<T, Allocator>::reserve(size_type new_capacity)
   {
-    /* TODO: Implement this method */
+    if (new_capacity <= capacity()) {
+      return;
+    }
+    if (new_capacity > max_size()) {
+      throw_length_error();
+    }
+    expand_storage(new_capacity);
   }
 
   template <typename T, typename Allocator>
@@ -302,15 +312,15 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  void vector<T, Allocator>::push_back(const_reference)
+  void vector<T, Allocator>::push_back(const_reference value)
   {
-    /* TODO: Implement this method */
+    emplace_back(value);
   }
 
   template <typename T, typename Allocator>
   void vector<T, Allocator>::pop_back()
   {
-    /* TODO: Implement this method */
+    destroy_at_end();
   }
 
   template <typename T, typename Allocator>
@@ -318,7 +328,7 @@ namespace ftl {
   vector<T, Allocator>::at(size_type index)
   {
     if (index >= size()) {
-      throw std::out_of_range(""); /* TODO: Write exception content */
+      throw_out_of_range();
     }
     return *(begin_ + index);
   }
@@ -328,7 +338,7 @@ namespace ftl {
   vector<T, Allocator>::at(size_type index) const
   {
     if (index >= size()) {
-      throw std::out_of_range(""); /* TODO: Write exception content */
+      throw_out_of_range();
     }
     return *(begin_ + index);
   }
@@ -392,9 +402,12 @@ namespace ftl {
 
   template <typename T, typename Allocator>
   template <typename... Args>
-  void vector<T, Allocator>::emplace_back(Args&&...)
+  void vector<T, Allocator>::emplace_back(Args&&... args)
   {
-    /* TODO: Implement this method */
+    if (end_ == end_cap_()) {
+      expand_storage(growth_capacity(capacity() + 1));
+    }
+    construct_at_end(std::forward<Args>(args)...);
   }
 
   template <typename T, typename Allocator>
@@ -429,8 +442,7 @@ namespace ftl {
   typename vector<T, Allocator>::size_type
   vector<T, Allocator>::max_size() const noexcept
   {
-    /* TODO: Implement this method */
-    return 999'999'999;
+    return AllocTraits_::max_size(alloc_());
   }
 
   template <typename T, typename Allocator>
@@ -438,11 +450,7 @@ namespace ftl {
   {
   public:
     Deleter(vector& v) : v_(v) {}
-    void operator()()
-    {
-      v_.clear();
-      AllocTraits_::deallocate(v_.alloc_(), v_.begin_, v_.capacity());
-    }
+    void operator()() { v_.deallocate(); }
 
   private:
     vector& v_;
@@ -452,11 +460,21 @@ namespace ftl {
   void vector<T, Allocator>::allocate(size_type size)
   {
     if (size > max_size()) {
-      throw std::length_error(""); /* TODO: Write exception content */
+      throw_length_error();
     }
     begin_ = AllocTraits_::allocate(alloc_(), size);
     end_ = begin_;
     end_cap_() = begin_ + size;
+  }
+
+  template <typename T, typename Allocator>
+  void vector<T, Allocator>::deallocate() noexcept
+  {
+    if (begin_ != nullptr) {
+      clear();
+      AllocTraits_::deallocate(alloc_(), begin_, capacity());
+      begin_ = end_ = end_cap_() = nullptr;
+    }
   }
 
   template <typename T, typename Allocator>
@@ -472,6 +490,46 @@ namespace ftl {
   {
     AllocTraits_::destroy(alloc_(), end_ - 1);
     --end_;
+  }
+
+  template <typename T, typename Allocator>
+  void vector<T, Allocator>::expand_storage(size_type new_capacity)
+  {
+    pointer new_begin_ = AllocTraits_::allocate(alloc_(), new_capacity);
+    pointer new_end_ = new_begin_;
+    pointer new_end_cap_ = new_begin_ + new_capacity;
+
+    auto deleter = [&]() {
+      for (; new_end_ != new_begin_; --new_end_) {
+        AllocTraits_::destroy(alloc_(), new_end_);
+      }
+      AllocTraits_::deallocate(alloc_(), new_begin_, new_capacity);
+    };
+    detail::exception_guard<decltype(deleter)> guard(deleter);
+    for (pointer i = begin_; i != end_; ++new_end_, ++i) {
+      AllocTraits_::construct(alloc_(), new_end_, std::move_if_noexcept(*i));
+    }
+    guard.complete();
+    deallocate();
+
+    begin_ = new_begin_;
+    end_ = new_end_;
+    end_cap_() = new_end_cap_;
+  }
+
+  template <typename T, typename Allocator>
+  typename vector<T, Allocator>::size_type
+  vector<T, Allocator>::growth_capacity(size_type new_capacity) const
+  {
+    size_type max_sz = max_size();
+    if (new_capacity > max_sz) {
+      throw_length_error();
+    }
+    size_type cap = capacity();
+    if (cap >= max_sz / 2) {
+      return max_sz;
+    }
+    return std::max(cap * 2, new_capacity);
   }
 
   template <typename T, typename Allocator>
