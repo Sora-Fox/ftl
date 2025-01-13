@@ -5,9 +5,11 @@
 #ifndef FTL_CONTAINERS_VECTOR_HPP
 #define FTL_CONTAINERS_VECTOR_HPP
 
+#include <algorithm>
 #include <initializer_list>
 #include <iterator>
 #include <memory>
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
 #include "../internal/compressed_pair.hpp"
@@ -141,6 +143,9 @@ namespace ftl {
 
     class Deleter;
 
+    void allocate(size_type);
+    template <typename... Args>
+    void construct_at_end(Args&&...);
     pointer& end_cap_() noexcept;
     allocator_type& alloc_() noexcept;
     const pointer& end_cap_() const noexcept;
@@ -150,15 +155,10 @@ namespace ftl {
   template <typename T, typename Allocator>
   vector<T, Allocator>::vector(const vector& rhs) : vector(rhs.alloc_())
   {
-    /* TODO: Should we allocate degree of 2 here instead of given size */
-    /* TODO: Check max_size here */
-    begin_ = alloc_().allocate(rhs.size());
-    end_ = begin_;
-    end_cap_() = begin_ + rhs.size();
+    allocate(rhs.size());
     detail::exception_guard<Deleter> guard(Deleter(*this));
-    /* TODO: Refactor */
-    for (auto i = rhs.begin_; end_ != begin_ + rhs.size(); ++end_, ++i) {
-      AllocTraits_::construct(alloc_(), end_, *i);
+    for (auto i = rhs.begin_, end = rhs.end_; i != end; ++i) {
+      construct_at_end(*i);
     }
     guard.complete();
   }
@@ -168,7 +168,6 @@ namespace ftl {
     begin_(std::exchange(rhs.begin_, nullptr)),
     end_(std::exchange(rhs.end_, nullptr)),
     end_cap_alloc_(std::move(rhs.end_cap_alloc_))
-  /* TODO: ensure compressed_pair has correct move constructor */
   {
   }
 
@@ -191,15 +190,10 @@ namespace ftl {
       const allocator_type& alloc) :
     vector(alloc)
   {
-    /* TODO: Should we allocate degree of 2 here instead of given size */
-    /* TODO: Check max_size here */
-    begin_ = alloc_().allocate(size);
-    end_ = begin_;
-    end_cap_() = begin_ + size;
+    allocate(size);
     detail::exception_guard<Deleter> guard(Deleter(*this));
-    /* TODO: Refactor */
-    for (; end_ != begin_ + size; ++end_) {
-      AllocTraits_::construct(alloc_(), end_, value);
+    for (; end_ != begin_ + size;) {
+      construct_at_end(value);
     }
     guard.complete();
   }
@@ -220,8 +214,14 @@ namespace ftl {
   template <typename T, typename Allocator>
   vector<T, Allocator>::vector(std::initializer_list<value_type> list,
       const allocator_type& alloc) :
-    vector(list.begin(), list.end(), alloc)
+    vector(alloc)
   {
+    allocate(list.size());
+    detail::exception_guard<Deleter> guard(Deleter(*this));
+    for (auto i = list.begin(), end = list.end(); i != end; ++i) {
+      construct_at_end(*i);
+    }
+    guard.complete();
   }
 
   template <typename T, typename Allocator>
@@ -279,6 +279,7 @@ namespace ftl {
   void vector<T, Allocator>::clear() noexcept
   {
     for (; end_ != begin_; --end_) {
+      /* TODO: should we add destroy_at_end function? */
       AllocTraits_::destroy(alloc_(), end_ - 1);
     }
   }
@@ -411,7 +412,7 @@ namespace ftl {
   vector<T, Allocator>::max_size() const noexcept
   {
     /* TODO: Implement this method */
-    // return alloc_().max_size();
+    return 999'999'999;
   }
 
   template <typename T, typename Allocator>
@@ -428,6 +429,25 @@ namespace ftl {
   private:
     vector& v_;
   };
+
+  template <typename T, typename Allocator>
+  void vector<T, Allocator>::allocate(size_type size)
+  {
+    if (size > max_size()) {
+      throw std::length_error(""); /* TODO: Write exception content */
+    }
+    begin_ = AllocTraits_::allocate(alloc_(), size);
+    end_ = begin_;
+    end_cap_() = begin_ + size;
+  }
+
+  template <typename T, typename Allocator>
+  template <typename... Args>
+  void vector<T, Allocator>::construct_at_end(Args&&... args)
+  {
+    AllocTraits_::construct(alloc_(), end_, args...);
+    ++end_;
+  }
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::pointer&
