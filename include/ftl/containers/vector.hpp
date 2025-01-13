@@ -146,6 +146,8 @@ namespace ftl {
     void allocate(size_type);
     template <typename... Args>
     void construct_at_end(Args&&...);
+    void destroy_at_end() noexcept;
+
     pointer& end_cap_() noexcept;
     allocator_type& alloc_() noexcept;
     const pointer& end_cap_() const noexcept;
@@ -232,29 +234,36 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  vector<T, Allocator>& vector<T, Allocator>::operator=(const vector&) &
+  vector<T, Allocator>& vector<T, Allocator>::operator=(const vector& rhs) &
   {
-    /* TODO: Implement this method */
+    vector copy = rhs;
+    swap(copy);
+    return *this;
   }
 
   template <typename T, typename Allocator>
-  vector<T, Allocator>& vector<T, Allocator>::operator=(vector&&) & noexcept
+  vector<T, Allocator>& vector<T, Allocator>::operator=(vector&& rhs) & noexcept
   {
-    /* TODO: Implement this method */
+    /* TODO: code duplicating: Deleter::operator()(), ~vector() */
+    clear();
+    AllocTraits_::deallocate(alloc_(), begin_, capacity());
+
+    swap(rhs);
+    return *this;
   }
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::reference
-  vector<T, Allocator>::operator[](size_type) noexcept
+  vector<T, Allocator>::operator[](size_type index) noexcept
   {
-    /* TODO: Implement this method */
+    return *(begin_ + index);
   }
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::const_reference
-  vector<T, Allocator>::operator[](size_type) const noexcept
+  vector<T, Allocator>::operator[](size_type index) const noexcept
   {
-    /* TODO: Implement this method */
+    return *(begin_ + index);
   }
 
   template <typename T, typename Allocator>
@@ -278,16 +287,18 @@ namespace ftl {
   template <typename T, typename Allocator>
   void vector<T, Allocator>::clear() noexcept
   {
-    for (; end_ != begin_; --end_) {
-      /* TODO: should we add destroy_at_end function? */
-      AllocTraits_::destroy(alloc_(), end_ - 1);
+    for (; end_ != begin_;) {
+      destroy_at_end();
     }
   }
 
   template <typename T, typename Allocator>
-  void vector<T, Allocator>::swap(vector&) noexcept
+  void vector<T, Allocator>::swap(vector& rhs) noexcept
   {
-    /* TODO: Implement this method */
+    using std::swap;
+    swap(begin_, rhs.begin_);
+    swap(end_, rhs.end_);
+    swap(end_cap_alloc_, rhs.end_cap_alloc_);
   }
 
   template <typename T, typename Allocator>
@@ -303,16 +314,23 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  typename vector<T, Allocator>::reference vector<T, Allocator>::at(size_type)
+  typename vector<T, Allocator>::reference
+  vector<T, Allocator>::at(size_type index)
   {
-    /* TODO: Implement this method */
+    if (index >= size()) {
+      throw std::out_of_range(""); /* TODO: Write exception content */
+    }
+    return *(begin_ + index);
   }
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::const_reference
-  vector<T, Allocator>::at(size_type) const
+  vector<T, Allocator>::at(size_type index) const
   {
-    /* TODO: Implement this method */
+    if (index >= size()) {
+      throw std::out_of_range(""); /* TODO: Write exception content */
+    }
+    return *(begin_ + index);
   }
 
   template <typename T, typename Allocator>
@@ -450,6 +468,13 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
+  void vector<T, Allocator>::destroy_at_end() noexcept
+  {
+    AllocTraits_::destroy(alloc_(), end_ - 1);
+    --end_;
+  }
+
+  template <typename T, typename Allocator>
   typename vector<T, Allocator>::pointer&
   vector<T, Allocator>::end_cap_() noexcept
   {
@@ -478,9 +503,9 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  void swap(vector<T, Allocator>&, vector<T, Allocator>&) noexcept
+  void swap(vector<T, Allocator>& lhs, vector<T, Allocator>& rhs) noexcept
   {
-    /* TODO: Implement this function */
+    lhs.swap(rhs);
   }
 
   template <typename T, typename Allocator>
