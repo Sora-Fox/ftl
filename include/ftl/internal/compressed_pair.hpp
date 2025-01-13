@@ -118,7 +118,7 @@ public:
     return static_cast<const Base2&>(*this).get();
   }
 
-  void swap(const compressed_pair& rhs) noexcept
+  void swap(compressed_pair& rhs) noexcept
   {
     using std::swap;
     swap(first(), rhs.first());
