@@ -102,6 +102,7 @@ namespace ftl {
     void assign(std::initializer_list<value_type>);
 
     iterator insert(const_iterator, const_reference);
+    iterator insert(const_iterator, value_type&&); // TODO: Add definition
     iterator insert(const_iterator, size_type, const_reference);
     template <typename InputIt, detail::enable_if_input_iterator<InputIt> = 0>
     iterator insert(const_iterator, InputIt, InputIt);
@@ -138,11 +139,11 @@ namespace ftl {
     allocator_type get_allocator() const noexcept { return alloc_(); }
 
   private:
+    class Deleter;
+
     pointer begin_;
     pointer end_;
     detail::compressed_pair<pointer, allocator_type> end_cap_alloc_;
-
-    class Deleter;
 
     void allocate(size_type);
     void deallocate() noexcept;
@@ -359,29 +360,41 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  void vector<T, Allocator>::assign(size_type, const_reference)
+  void vector<T, Allocator>::assign(size_type size, const_reference value)
   {
-    /* TODO: Implement this method */
+    vector tmp(size, value);
+    swap(tmp);
   }
 
   template <typename T, typename Allocator>
   template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
-  void vector<T, Allocator>::assign(InputIt, InputIt)
+  void vector<T, Allocator>::assign(InputIt first, InputIt last)
   {
-    /* TODO: Implement this method */
+    vector tmp(first, last);
+    swap(tmp);
   }
 
   template <typename T, typename Allocator>
-  void vector<T, Allocator>::assign(std::initializer_list<value_type>)
+  void vector<T, Allocator>::assign(std::initializer_list<value_type> list)
   {
-    /* TODO: Implement this method */
+    vector tmp(list);
+    swap(tmp);
   }
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::iterator
-  vector<T, Allocator>::insert(const_iterator, const_reference)
+  vector<T, Allocator>::insert(const_iterator pos, const_reference value)
   {
-    /* TODO: Implement this method */
+    size_type shift = begin_ + (pos - begin());
+    if (end_ == end_cap_()) {
+      reallocate_storage(growth_capacity(capacity() + 1));
+    }
+    pointer position = begin_ + shift;
+    if (position == end_) {
+      construct_at_end(value);
+    }
+    // TODO: Implement this method
+    // Here should be strong exception safety
   }
 
   template <typename T, typename Allocator>
@@ -513,15 +526,14 @@ namespace ftl {
     pointer new_begin = AllocTraits::allocate(alloc_(), new_capacity);
     pointer new_end = new_begin;
     pointer new_end_cap = new_begin + new_capacity;
-
     auto deleter = [&]() {
       for (; new_end != new_begin; --new_end) {
         AllocTraits::destroy(alloc_(), new_end);
       }
       AllocTraits::deallocate(alloc_(), new_begin, new_capacity);
     };
-    detail::exception_guard<decltype(deleter)> guard(deleter);
 
+    detail::exception_guard<decltype(deleter)> guard(deleter);
     for (pointer i = begin_, end = new_begin + std::min(new_capacity, size());
         new_end != end; ++new_end, ++i) {
       AllocTraits::construct(alloc_(), new_end, std::move_if_noexcept(*i));
@@ -548,6 +560,7 @@ namespace ftl {
     }
     return std::max(cap * 2, new_capacity);
   }
+
   template <typename T, typename Allocator>
   void vector<T, Allocator>::throw_out_of_range() const
   {
@@ -640,7 +653,7 @@ namespace ftl {
 
 #else
 
-  // TODO ensure that it's correct
+  // TODO: ensure that it's correct
   template <typename T, typename Allocator>
   auto
   operator<=>(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs)
