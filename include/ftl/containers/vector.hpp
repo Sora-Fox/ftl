@@ -595,17 +595,60 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  bool operator==(const vector<T, Allocator>&, const vector<T, Allocator>&)
+  bool
+  operator==(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs)
   {
-    /* TODO: Implement this function */
+    const bool is_same_size = lhs.size() == rhs.size();
+    return is_same_size && std::equal(lhs.begin(), lhs.end(), rhs.begin());
   }
 
 #if !defined(FTL_CPP20_FEATURES)
+
   template <typename T, typename Allocator>
-  bool operator!=(const vector<T, Allocator>&, const vector<T, Allocator>&)
+  bool
+  operator!=(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs)
   {
-    /* TODO: Implement this function */
+    return !(lhs == rhs);
   }
+
+  template <typename T, typename Allocator>
+  bool operator<(const vector<T, Allocator>& l, const vector<T, Allocator>& r)
+  {
+    return std::lexicographical_compare(l.begin(), l.end(), r.begin(), r.end());
+  }
+
+  template <typename T, typename Allocator>
+  bool
+  operator>(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs)
+  {
+    return rhs < lhs;
+  }
+
+  template <typename T, typename Allocator>
+  bool
+  operator<=(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs)
+  {
+    return !(lhs > rhs);
+  }
+
+  template <typename T, typename Allocator>
+  bool
+  operator>=(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs)
+  {
+    return !(lhs < rhs);
+  }
+
+#else
+
+  // TODO ensure that it's correct
+  template <typename T, typename Allocator>
+  auto
+  operator<=>(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs)
+  {
+    return std::lexicographical_compare_three_way(lhs.begin(), lhs.end(),
+        rhs.begin(), rhs.end());
+  }
+
 #endif
 }
 
