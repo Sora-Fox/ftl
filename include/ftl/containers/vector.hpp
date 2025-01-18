@@ -153,6 +153,7 @@ namespace ftl {
     void destroy_at_end() noexcept;
 
     void reallocate_storage(size_type);
+    void move_range(pointer, pointer, pointer);
     size_type growth_capacity(size_type) const;
 
     void throw_out_of_range() const;
@@ -383,25 +384,33 @@ namespace ftl {
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::iterator
-  vector<T, Allocator>::insert(const_iterator pos, const_reference value)
+  vector<T, Allocator>::insert(const_iterator position, const_reference value)
   {
-    size_type shift = begin_ + (pos - begin());
-    if (end_ == end_cap_()) {
-      reallocate_storage(growth_capacity(capacity() + 1));
-    }
-    pointer position = begin_ + shift;
-    if (position == end_) {
-      construct_at_end(value);
-    }
-    // TODO: Implement this method
-    // Here should be strong exception safety
+    return emplace(position, value);
   }
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::iterator
-  vector<T, Allocator>::insert(const_iterator, size_type, const_reference)
+  vector<T, Allocator>::insert(const_iterator position, size_type size,
+      const_reference value)
   {
     /* TODO: Implement this method */
+#if 0
+    size_type shift = position - begin();
+    if (end_ == end_cap_()) {
+      reallocate_storage(growth_capacity(capacity() + size));
+    }
+    pointer pos = begin_ + shift;
+    if (pos == end_) {
+      for (size_type i = 0; i != size; ++i) {
+        construct_at_end(value);
+      }
+    } else {
+      move_range(pos, end_, pos + size); // move_range should update end_ to avoid leaks
+    }
+    return iterator(pos);
+#endif
+    return begin(); // for correct test running
   }
 
   template <typename T, typename Allocator>
@@ -410,22 +419,40 @@ namespace ftl {
   vector<T, Allocator>::insert(const_iterator, InputIt, InputIt)
   {
     /* TODO: Implement this method */
+    return begin(); // for correct test running
   }
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::iterator
-  vector<T, Allocator>::insert(const_iterator,
-      std::initializer_list<value_type>)
+  vector<T, Allocator>::insert(const_iterator position,
+      std::initializer_list<value_type> list)
   {
-    /* TODO: Implement this method */
+    // TODO: should we use another algorithm?
+    return insert(position, list.begin(), list.end());
   }
 
   template <typename T, typename Allocator>
   template <typename... Args>
   typename vector<T, Allocator>::iterator
-  vector<T, Allocator>::emplace(const_iterator, Args&&...)
+  vector<T, Allocator>::emplace(const_iterator position, Args&&... args)
   {
     /* TODO: Implement this method */
+#if 0
+    size_type shift = position - begin();
+    if (end_ == end_cap_()) {
+      reallocate_storage(growth_capacity(capacity() + 1));
+    }
+    pointer pos = begin_ + shift;
+    if (pos == end_) {
+      construct_at_end(std::forward<Args>(args)...);
+    } else {
+      move_range(pos, end_, pos + 1);
+      ++end_;
+      AllocTraits::construct(alloc_(), pos, std::forward<Args>(args)...);
+    }
+    return iterator(pos);
+#endif
+    return begin(); // for correct test running
   }
 
   template <typename T, typename Allocator>
@@ -440,16 +467,17 @@ namespace ftl {
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::iterator
-  vector<T, Allocator>::erase(const_iterator)
+  vector<T, Allocator>::erase(const_iterator position)
   {
-    /* TODO: Implement this method */
+    return erase(position, ++position);
   }
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::iterator
-  vector<T, Allocator>::erase(const_iterator, const_iterator)
+  vector<T, Allocator>::erase(const_iterator first, const_iterator last)
   {
     /* TODO: Implement this method */
+    return begin(); // for correct test running
   }
 
   template <typename T, typename Allocator>
@@ -544,6 +572,39 @@ namespace ftl {
     begin_ = new_begin;
     end_ = new_end;
     end_cap_() = new_end_cap;
+  }
+
+  template <typename T, typename Allocator>
+  void
+  vector<T, Allocator>::move_range(pointer first, pointer last, pointer out)
+  {
+    /* TODO: Implement this method */
+#if 0
+    if (first == out) {
+      return;
+    }
+    if (first < out && out < last) {
+      pointer src = last;
+      pointer dest = out + (last - first);
+      while (src != first) {
+        --src;
+        --dest;
+        if (dest >= end_) {
+          AllocTraits::construct(alloc_(), dest, std::move(*src));
+        } else {
+          *dest = std::move(*src);
+        }
+      }
+      return;
+    }
+    for (; first != last; ++first, ++out) {
+      if (out >= end_) {
+        AllocTraits::construct(alloc_(), out, std::move(*first));
+      } else {
+        *out = std::move(*first);
+      }
+    }
+#endif
   }
 
   template <typename T, typename Allocator>
