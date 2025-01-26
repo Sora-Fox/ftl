@@ -90,7 +90,7 @@ namespace ftl {
     void swap(vector&) noexcept;
 
     void push_back(const_reference);
-    void push_back(value_type&&); // TODO: Add definition
+    // void push_back(value_type&&); // TODO: Add definition
     void pop_back();
 
     reference at(size_type);
@@ -102,7 +102,7 @@ namespace ftl {
     void assign(std::initializer_list<value_type>);
 
     iterator insert(const_iterator, const_reference);
-    iterator insert(const_iterator, value_type&&); // TODO: Add definition
+    // iterator insert(const_iterator, value_type&&); // TODO: Add definition
     iterator insert(const_iterator, size_type, const_reference);
     template <typename InputIt, detail::enable_if_input_iterator<InputIt> = 0>
     iterator insert(const_iterator, InputIt, InputIt);
@@ -153,7 +153,8 @@ namespace ftl {
     void destroy_at_end() noexcept;
 
     void reallocate_storage(size_type);
-    void move_range(pointer, pointer, pointer);
+    void move_right_uninitialized(pointer);
+    void move_right(pointer, pointer);
     size_type growth_capacity(size_type) const;
 
     void throw_out_of_range() const;
@@ -394,8 +395,6 @@ namespace ftl {
   vector<T, Allocator>::insert(const_iterator position, size_type size,
       const_reference value)
   {
-    /* TODO: Implement this method */
-#if 0
     size_type shift = position - begin();
     if (end_ == end_cap_()) {
       reallocate_storage(growth_capacity(capacity() + size));
@@ -406,20 +405,25 @@ namespace ftl {
         construct_at_end(value);
       }
     } else {
-      move_range(pos, end_, pos + size); // move_range should update end_ to avoid leaks
+      move_right(pos, pos + size);
+      for (; pos != pos + size; ++pos) {
+        AllocTraits::construct(alloc_(), pos, value);
+      }
     }
-    return iterator(pos);
-#endif
-    return begin(); // for correct test running
+    return iterator(begin_ + shift);
   }
 
   template <typename T, typename Allocator>
   template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
   typename vector<T, Allocator>::iterator
-  vector<T, Allocator>::insert(const_iterator, InputIt, InputIt)
+  vector<T, Allocator>::insert(const_iterator position, InputIt first,
+      InputIt last)
   {
-    /* TODO: Implement this method */
-    return begin(); // for correct test running
+    size_type shift = position - begin();
+    for (; first != last; ++first, ++position) {
+      emplace(position, *first);
+    }
+    return iterator(begin_ + shift);
   }
 
   template <typename T, typename Allocator>
@@ -427,7 +431,6 @@ namespace ftl {
   vector<T, Allocator>::insert(const_iterator position,
       std::initializer_list<value_type> list)
   {
-    // TODO: should we use another algorithm?
     return insert(position, list.begin(), list.end());
   }
 
@@ -436,23 +439,19 @@ namespace ftl {
   typename vector<T, Allocator>::iterator
   vector<T, Allocator>::emplace(const_iterator position, Args&&... args)
   {
-    /* TODO: Implement this method */
-#if 0
-    size_type shift = position - begin();
+    size_type shift = position - cbegin();
+    value_type value(std::forward<Args>(args)...);
     if (end_ == end_cap_()) {
       reallocate_storage(growth_capacity(capacity() + 1));
     }
     pointer pos = begin_ + shift;
     if (pos == end_) {
-      construct_at_end(std::forward<Args>(args)...);
+      construct_at_end(std::move(value));
     } else {
-      move_range(pos, end_, pos + 1);
-      ++end_;
-      AllocTraits::construct(alloc_(), pos, std::forward<Args>(args)...);
+      move_right(pos, pos + 1);
+      *pos = std::move(value);
     }
     return iterator(pos);
-#endif
-    return begin(); // for correct test running
   }
 
   template <typename T, typename Allocator>
@@ -469,15 +468,25 @@ namespace ftl {
   typename vector<T, Allocator>::iterator
   vector<T, Allocator>::erase(const_iterator position)
   {
-    return erase(position, ++position);
+    return erase(position, position + 1);
   }
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::iterator
   vector<T, Allocator>::erase(const_iterator first, const_iterator last)
   {
-    /* TODO: Implement this method */
-    return begin(); // for correct test running
+    pointer first_ptr = begin_ + (first - cbegin());
+    pointer last_ptr = begin_ + (last - cbegin());
+    const size_type count = last_ptr - first_ptr;
+    if (count == 0) {
+      return iterator(first_ptr);
+    }
+    pointer swap_start = end_ - count;
+    std::swap_ranges(first_ptr, last_ptr, swap_start);
+    for (size_type i = 0; i != count; ++i) {
+      destroy_at_end();
+    }
+    return iterator(first_ptr);
   }
 
   template <typename T, typename Allocator>
@@ -575,36 +584,20 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  void
-  vector<T, Allocator>::move_range(pointer first, pointer last, pointer out)
+  void vector<T, Allocator>::move_right_uninitialized(pointer begin)
   {
-    /* TODO: Implement this method */
-#if 0
-    if (first == out) {
-      return;
+    for (pointer end = end_; begin != end; ++begin) {
+      construct_at_end(std::move(*begin));
     }
-    if (first < out && out < last) {
-      pointer src = last;
-      pointer dest = out + (last - first);
-      while (src != first) {
-        --src;
-        --dest;
-        if (dest >= end_) {
-          AllocTraits::construct(alloc_(), dest, std::move(*src));
-        } else {
-          *dest = std::move(*src);
-        }
-      }
-      return;
-    }
-    for (; first != last; ++first, ++out) {
-      if (out >= end_) {
-        AllocTraits::construct(alloc_(), out, std::move(*first));
-      } else {
-        *out = std::move(*first);
-      }
-    }
-#endif
+  }
+
+  template <typename T, typename Allocator>
+  void vector<T, Allocator>::move_right(pointer first, pointer out)
+  {
+    size_type shift = out - first;
+    pointer new_last = end_ - shift;
+    move_right_uninitialized(new_last);
+    std::move_backward(first, new_last, new_last + shift);
   }
 
   template <typename T, typename Allocator>
