@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstddef>
 #include <initializer_list>
 #include <iterator>
 #include <numeric>
@@ -208,7 +209,7 @@ namespace test {
     AssertInvariants(empty, 0);
   }
 
-  TEST_F(VectorTest, InsertValueWithoutReallocation)
+  TEST_F(VectorTest, InsertLvalueWithoutReallocation)
   {
     filled.reserve(filled.capacity() + 1);
     auto val = VectorT::value_type(18);
@@ -218,7 +219,27 @@ namespace test {
     AssertInvariants(filled, copy.size() + 1);
   }
 
-  TEST_F(VectorTest, InsertValueWithReallocation)
+  TEST_F(VectorTest, InsertRvalueWithoutReallocation)
+  {
+    filled.reserve(filled.capacity() + 1);
+    auto val = VectorT::value_type(18);
+    auto pos = filled.begin() + filled.size() / 2;
+    auto it = filled.insert(pos, std::move(val));
+    EXPECT_EQ(*it, val);
+    AssertInvariants(filled, copy.size() + 1);
+  }
+
+  TEST_F(VectorTest, InsertRvalueWithReallocation)
+  {
+    filled.shrink_to_fit();
+    auto val = VectorT::value_type(18);
+    auto pos = filled.begin() + filled.size() / 2;
+    auto it = filled.insert(pos, std::move(val));
+    EXPECT_EQ(*it, val);
+    AssertInvariants(filled, copy.size() + 1);
+  }
+
+  TEST_F(VectorTest, InsertLvalueWithReallocation)
   {
     filled.shrink_to_fit();
     auto val = VectorT::value_type(18);
@@ -230,17 +251,37 @@ namespace test {
 
   TEST_F(VectorTest, InsertSeveralValues)
   {
-    /* TODO: Implement this test: InsertSeveralValues */
+    size_t new_vals_count = 3;
+    auto val = VectorT::value_type(18);
+    auto it = filled.insert(filled.cbegin(), new_vals_count, val);
+    ASSERT_EQ(filled.cbegin(), it);
+    ASSERT_TRUE(std::all_of(filled.cbegin(), filled.cbegin() + new_vals_count,
+        [&](auto e) { return e == val; }));
+    AssertInvariants(filled, copy.size() + new_vals_count);
   }
 
   TEST_F(VectorTest, InsertIterator)
   {
-    /* TODO: Implement this test: InsertIterator */
+    auto values = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    size_t shift = 2;
+    auto pos = filled.cbegin() + shift;
+    auto it = filled.insert(pos, values.begin(), values.end());
+    ASSERT_EQ(std::distance(filled.begin(), it), shift);
+    pos = filled.cbegin() + shift;
+    ASSERT_TRUE(std::equal(pos, pos + values.size(), values.begin()));
+    AssertInvariants(filled, copy.size() + values.size());
   }
 
   TEST_F(VectorTest, InsertInitializerList)
   {
-    /* TODO: Implement this test: InsertInitializerList */
+    std::initializer_list<VectorT::value_type> values = { 1, 2, 3, 4, 5, 6 };
+    size_t shift = 2;
+    auto pos = filled.cbegin() + shift;
+    auto it = filled.insert(pos, values);
+    ASSERT_EQ(std::distance(filled.begin(), it), shift);
+    pos = filled.cbegin() + shift;
+    ASSERT_TRUE(std::equal(pos, pos + values.size(), values.begin()));
+    AssertInvariants(filled, copy.size() + values.size());
   }
 
   TEST_F(VectorTest, AssignValues)
@@ -263,9 +304,36 @@ namespace test {
     /* TODO: Implement this test: AssignInitializerList */
   }
 
-  TEST_F(VectorTest, Emplace)
+  TEST_F(VectorTest, EmplaceWithoutReallocation)
   {
-    /* TODO: Implement this test: Emplace */
+    filled.reserve(filled.capacity() + 1);
+    auto val = VectorT::value_type(18);
+    size_t shift = filled.size() / 2;
+    auto pos = filled.begin() + shift;
+    auto it = filled.emplace(pos, val);
+    EXPECT_EQ(*it, val);
+    AssertInvariants(filled, copy.size() + 1);
+    auto filled_end = filled.begin() + shift;
+    auto copy_end = copy.begin() + shift;
+    EXPECT_TRUE(std::equal(filled.begin(), filled_end, copy.begin(), copy_end));
+    EXPECT_TRUE(std::equal(filled_end + 1, filled.end(), copy_end, copy.end()));
+  }
+
+  TEST_F(VectorTest, EmplaceWithReallocation)
+  {
+    filled.shrink_to_fit();
+    // TODO: remove code duplicating (the same logic in
+    // EmplaceWithoutReallocation)
+    auto val = VectorT::value_type(18);
+    size_t shift = filled.size() / 2;
+    auto pos = filled.begin() + shift;
+    auto it = filled.emplace(pos, val);
+    EXPECT_EQ(*it, val);
+    AssertInvariants(filled, copy.size() + 1);
+    auto filled_end = filled.begin() + shift;
+    auto copy_end = copy.begin() + shift;
+    EXPECT_TRUE(std::equal(filled.begin(), filled_end, copy.begin(), copy_end));
+    EXPECT_TRUE(std::equal(filled_end + 1, filled.end(), copy_end, copy.end()));
   }
 
   TEST_F(VectorTest, EmplaceBack)
