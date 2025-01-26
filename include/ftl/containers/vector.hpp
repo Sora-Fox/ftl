@@ -396,18 +396,20 @@ namespace ftl {
       const_reference value)
   {
     size_type shift = position - begin();
+    value_type val = value;
     if (end_ == end_cap_()) {
       reallocate_storage(growth_capacity(capacity() + size));
     }
     pointer pos = begin_ + shift;
     if (pos == end_) {
       for (size_type i = 0; i != size; ++i) {
-        construct_at_end(value);
+        construct_at_end(std::move(val));
       }
     } else {
-      move_right(pos, pos + size);
-      for (; pos != pos + size; ++pos) {
-        AllocTraits::construct(alloc_(), pos, value);
+      pointer last = pos + size;
+      move_right(pos, last);
+      for (; pos != last; ++pos) {
+        *pos = val;
       }
     }
     return iterator(begin_ + shift);
@@ -419,9 +421,10 @@ namespace ftl {
   vector<T, Allocator>::insert(const_iterator position, InputIt first,
       InputIt last)
   {
-    size_type shift = position - begin();
-    for (; first != last; ++first, ++position) {
-      emplace(position, *first);
+    size_type shift = position - cbegin();
+    for (; first != last; ++first) {
+      position = emplace(position, *first);
+      ++position;
     }
     return iterator(begin_ + shift);
   }
