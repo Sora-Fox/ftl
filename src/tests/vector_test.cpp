@@ -296,12 +296,18 @@ namespace test {
 
   TEST_F(VectorTest, AssignIterator)
   {
-    /* TODO: Implement this test: AssignIterator */
+    auto values = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    filled.assign(values.begin(), values.end());
+    AssertInvariants(filled, values.size());
+    EXPECT_TRUE(std::equal(filled.begin(), filled.end(), values.begin()));
   }
 
   TEST_F(VectorTest, AssignInitializerList)
   {
-    /* TODO: Implement this test: AssignInitializerList */
+    std::initializer_list<VectorT::value_type> values = { 1, 2, 3, 4, 5, 6, 7 };
+    filled.assign(values);
+    AssertInvariants(filled, values.size());
+    EXPECT_TRUE(std::equal(filled.begin(), filled.end(), values.begin()));
   }
 
   TEST_F(VectorTest, EmplaceWithoutReallocation)
@@ -354,7 +360,12 @@ namespace test {
 
   TEST_F(VectorTest, EraseRange)
   {
-    /* TODO: Implement this test: EraseRange */
+    auto first = filled.begin() + filled.size() / 2;
+    auto last = first + 4;
+    auto count = last - first;
+    auto it = filled.erase(first, last);
+    AssertInvariants(filled, copy.size() - count);
+    EXPECT_EQ(it, filled.begin() + copy.size() / 2);
   }
 
   // TODO: Add Tests for: at, operator[]
