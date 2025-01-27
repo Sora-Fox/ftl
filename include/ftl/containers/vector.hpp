@@ -90,7 +90,7 @@ namespace ftl {
     void swap(vector&) noexcept;
 
     void push_back(const_reference);
-    // void push_back(value_type&&); // TODO: Add definition
+    void push_back(value_type&&);
     void pop_back();
 
     reference at(size_type);
@@ -102,7 +102,7 @@ namespace ftl {
     void assign(std::initializer_list<value_type>);
 
     iterator insert(const_iterator, const_reference);
-    // iterator insert(const_iterator, value_type&&); // TODO: Add definition
+    iterator insert(const_iterator, value_type&&);
     iterator insert(const_iterator, size_type, const_reference);
     template <typename InputIt, detail::enable_if_input_iterator<InputIt> = 0>
     iterator insert(const_iterator, InputIt, InputIt);
@@ -336,6 +336,12 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
+  void vector<T, Allocator>::push_back(value_type&& value)
+  {
+    emplace_back(std::forward(value));
+  }
+
+  template <typename T, typename Allocator>
   void vector<T, Allocator>::pop_back()
   {
     destroy_at_end();
@@ -364,6 +370,7 @@ namespace ftl {
   template <typename T, typename Allocator>
   void vector<T, Allocator>::assign(size_type size, const_reference value)
   {
+    // TODO: avoid extra allocations in assign method overloads
     vector tmp(size, value);
     swap(tmp);
   }
@@ -392,9 +399,21 @@ namespace ftl {
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::iterator
+  vector<T, Allocator>::insert(const_iterator position, value_type&& value)
+  {
+    return emplace(position, std::forward<value_type>(value));
+  }
+
+  template <typename T, typename Allocator>
+  typename vector<T, Allocator>::iterator
   vector<T, Allocator>::insert(const_iterator position, size_type size,
       const_reference value)
   {
+    // TODO: too complex logic
+    // Add emplace_unsafe method that emplace element without checks and
+    // reallocations (it might take raw pointer) and then call it here in loop
+    // and refactor emplace using it as well Should we reallocate_storage and
+    // then call emplace in the loop
     size_type shift = position - begin();
     value_type val = value;
     if (end_ == end_cap_()) {
@@ -434,6 +453,7 @@ namespace ftl {
   vector<T, Allocator>::insert(const_iterator position,
       std::initializer_list<value_type> list)
   {
+    // TODO: avoid extra allocations
     return insert(position, list.begin(), list.end());
   }
 
@@ -442,18 +462,18 @@ namespace ftl {
   typename vector<T, Allocator>::iterator
   vector<T, Allocator>::emplace(const_iterator position, Args&&... args)
   {
+    if (position == cend()) {
+      emplace_back(std::forward<Args>(args)...);
+      return iterator(end_ - 1);
+    }
     size_type shift = position - cbegin();
     value_type value(std::forward<Args>(args)...);
     if (end_ == end_cap_()) {
       reallocate_storage(growth_capacity(capacity() + 1));
     }
     pointer pos = begin_ + shift;
-    if (pos == end_) {
-      construct_at_end(std::move(value));
-    } else {
-      move_right(pos, pos + 1);
-      *pos = std::move(value);
-    }
+    move_right(pos, pos + 1);
+    *pos = std::move(value);
     return iterator(pos);
   }
 
@@ -563,6 +583,7 @@ namespace ftl {
   template <typename T, typename Allocator>
   void vector<T, Allocator>::reallocate_storage(size_type new_capacity)
   {
+    // TODO: too much responsibility: should be shrink storage and expand?
     pointer new_begin = AllocTraits::allocate(alloc_(), new_capacity);
     pointer new_end = new_begin;
     pointer new_end_cap = new_begin + new_capacity;
@@ -589,6 +610,8 @@ namespace ftl {
   template <typename T, typename Allocator>
   void vector<T, Allocator>::move_right_uninitialized(pointer begin)
   {
+    // TODO: remove this method (inline in move_right)
+    // too complex private interface
     for (pointer end = end_; begin != end; ++begin) {
       construct_at_end(std::move(*begin));
     }
@@ -673,6 +696,7 @@ namespace ftl {
   }
 
 #if !defined(FTL_CPP20_FEATURES)
+  // TODO: should this macro be above operator==?
 
   template <typename T, typename Allocator>
   bool
@@ -720,6 +744,7 @@ namespace ftl {
   }
 
 #endif
+  // TODO: vector should be hashable
 }
 
 #endif
