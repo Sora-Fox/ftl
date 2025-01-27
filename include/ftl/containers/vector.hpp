@@ -341,7 +341,7 @@ namespace ftl {
   template <typename T, typename Allocator>
   void vector<T, Allocator>::push_back(value_type&& value)
   {
-    emplace_back(std::forward(value));
+    emplace_back(std::forward<value_type>(value));
   }
 
   template <typename T, typename Allocator>
@@ -373,24 +373,39 @@ namespace ftl {
   template <typename T, typename Allocator>
   void vector<T, Allocator>::assign(size_type size, const_reference value)
   {
-    // TODO: avoid extra allocations in assign method overloads
-    vector tmp(size, value);
-    swap(tmp);
+    if (capacity() < size) {
+      vector tmp(size, value);
+      swap(tmp);
+      return;
+    }
+    clear();
+    for (; size != 0; --size) {
+      construct_at_end(value);
+    }
   }
 
   template <typename T, typename Allocator>
   template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
   void vector<T, Allocator>::assign(InputIt first, InputIt last)
   {
-    vector tmp(first, last);
-    swap(tmp);
+    clear();
+    for (; first != last; ++first) {
+      emplace_back(*first);
+    }
   }
 
   template <typename T, typename Allocator>
   void vector<T, Allocator>::assign(std::initializer_list<value_type> list)
   {
-    vector tmp(list);
-    swap(tmp);
+    if (capacity() < list.size()) {
+      vector tmp(list);
+      swap(tmp);
+      return;
+    }
+    clear();
+    for (auto i = list.begin(), end = list.end(); i != end; ++i) {
+      construct_at_end(*i);
+    }
   }
 
   template <typename T, typename Allocator>
@@ -448,8 +463,21 @@ namespace ftl {
   vector<T, Allocator>::insert(const_iterator position,
       std::initializer_list<value_type> list)
   {
-    // TODO: avoid extra allocations
-    return insert(position, list.begin(), list.end());
+    size_type shift = position - begin();
+    if (size() + list.size() > capacity()) {
+      reallocate_storage(growth_capacity(size() + list.size()));
+    }
+    pointer pos = begin_ + shift;
+    if (pos == end_) {
+      for (auto i = list.begin(), end = list.end(); i != end; ++i) {
+        construct_at_end(*i);
+      }
+    } else {
+      for (auto i = list.begin(), end = list.end(); i != end; ++i) {
+        pos = emplace_unsafe(pos, *i) + 1;
+      }
+    }
+    return iterator(begin_ + shift);
   }
 
   template <typename T, typename Allocator>
@@ -613,8 +641,6 @@ namespace ftl {
   template <typename T, typename Allocator>
   void vector<T, Allocator>::move_right_uninitialized(pointer begin)
   {
-    // TODO: remove this method (inline in move_right)
-    // too complex private interface
     for (pointer end = end_; begin != end; ++begin) {
       construct_at_end(std::move(*begin));
     }
