@@ -695,7 +695,7 @@ namespace ftl {
   operator==(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs)
   {
     const bool is_same_size = lhs.size() == rhs.size();
-    return is_same_size && std::equal(lhs.begin(), lhs.end(), rhs.begin());
+    return is_same_size && std::equal(lhs.cbegin(), lhs.cend(), rhs.cbegin());
   }
 
 #if !defined(FTL_CPP20_FEATURES)
@@ -711,7 +711,8 @@ namespace ftl {
   template <typename T, typename Allocator>
   bool operator<(const vector<T, Allocator>& l, const vector<T, Allocator>& r)
   {
-    return std::lexicographical_compare(l.begin(), l.end(), r.begin(), r.end());
+    return std::lexicographical_compare(l.cbegin(), l.cend(), r.cbegin(),
+        r.cend());
   }
 
   template <typename T, typename Allocator>
@@ -742,8 +743,8 @@ namespace ftl {
   auto
   operator<=>(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs)
   {
-    return std::lexicographical_compare_three_way(lhs.begin(), lhs.end(),
-        rhs.begin(), rhs.end());
+    return std::lexicographical_compare_three_way(lhs.cbegin(), lhs.cend(),
+        rhs.cbegin(), rhs.cend());
   }
 
 #endif
