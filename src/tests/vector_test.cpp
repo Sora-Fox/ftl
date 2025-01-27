@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <cstddef>
 #include <initializer_list>
 #include <iterator>
 #include <numeric>
@@ -20,6 +19,23 @@ namespace test {
     ASSERT_GE(vector.capacity(), size);
     ASSERT_EQ(std::distance(beg, end), size);
     ASSERT_LE(beg, end);
+    if (size > 0) {
+      EXPECT_EQ(vector.front(), *vector.cbegin());
+      EXPECT_EQ(vector.back(), *(vector.cend() - 1));
+    }
+  }
+
+  void AssertAllElementsEqual(const VectorT& vec,
+      const VectorT::value_type& expected)
+  {
+    EXPECT_TRUE(std::all_of(vec.cbegin(), vec.cend(),
+        [&expected](const auto& x) { return x == expected; }));
+  }
+
+  void AssertVectorsEqual(const VectorT& vec1, const VectorT& vec2)
+  {
+    EXPECT_EQ(vec1.size(), vec2.size());
+    EXPECT_TRUE(std::equal(vec1.cbegin(), vec1.cend(), vec2.cbegin()));
   }
 
   class VectorTest : public ::testing::Test
@@ -56,8 +72,7 @@ namespace test {
     VectorT::value_type val{};
     VectorT vector(size);
     AssertInvariants(vector, size);
-    EXPECT_TRUE(std::all_of(vector.begin(), vector.end(),
-        [&val](const auto& x) { return x == val; }));
+    AssertAllElementsEqual(vector, val);
   }
 
   TEST(VectorConstructor, SizeAndValue)
@@ -66,8 +81,7 @@ namespace test {
     VectorT::value_type val(7);
     VectorT vector(size, val);
     AssertInvariants(vector, size);
-    EXPECT_TRUE(std::all_of(vector.begin(), vector.end(),
-        [&val](const auto& x) { return x == val; }));
+    AssertAllElementsEqual(vector, val);
   }
 
   TEST(VectorConstructor, Iterators)
@@ -91,7 +105,7 @@ namespace test {
     VectorT vector(100, 7);
     VectorT copy(vector);
     AssertInvariants(copy, vector.size());
-    EXPECT_TRUE(std::equal(vector.begin(), vector.end(), copy.begin()));
+    AssertVectorsEqual(vector, copy);
   }
 
   TEST(VectorConstructor, Move)
@@ -100,7 +114,7 @@ namespace test {
     VectorT copy(vector);
     VectorT moved(std::move(vector));
     AssertInvariants(moved, copy.size());
-    EXPECT_TRUE(std::equal(copy.begin(), copy.end(), moved.begin()));
+    AssertVectorsEqual(copy, moved);
   }
 
   TEST(VectorAssignmentOperator, Move)
@@ -110,7 +124,7 @@ namespace test {
     VectorT moved;
     moved = std::move(vector);
     AssertInvariants(moved, copy.size());
-    EXPECT_TRUE(std::equal(copy.begin(), copy.end(), moved.begin()));
+    AssertVectorsEqual(copy, moved);
   }
 
   TEST(VectorAssignmentOperator, Copy)
@@ -119,7 +133,54 @@ namespace test {
     VectorT copy;
     copy = vector;
     AssertInvariants(copy, vector.size());
-    EXPECT_TRUE(std::equal(vector.begin(), vector.end(), copy.begin()));
+    AssertVectorsEqual(copy, copy);
+  }
+
+  TEST_F(VectorTest, ReverseIterators)
+  {
+    auto rbeg = filled.rbegin();
+    auto rend = filled.rend();
+    EXPECT_EQ(*rbeg, filled.back());
+    EXPECT_EQ(*(rend - 1), filled.front());
+  }
+
+  TEST_F(VectorTest, IteratorInvalidationOnReallocation)
+  {
+    auto it = filled.begin();
+    filled.reserve(filled.capacity() * 2);
+    EXPECT_NE(it, filled.begin());
+  }
+
+  TEST_F(VectorTest, DataPointer)
+  {
+    EXPECT_EQ(filled.data(), std::addressof(filled.front()));
+    EXPECT_EQ(empty.data(), nullptr);
+  }
+
+  TEST_F(VectorTest, OperatorBracketAccess)
+  {
+    auto value = 111;
+    auto index = filled.size() - 1;
+    filled[filled.size() - 1] = value;
+    EXPECT_EQ(filled[index], value);
+    const VectorT& const_filled = filled;
+    EXPECT_EQ(const_filled[index], value);
+  }
+
+  TEST_F(VectorTest, AtValidIndex)
+  {
+    auto value = 111;
+    auto index = filled.size() - 1;
+    filled.at(index) = value;
+    EXPECT_EQ(filled.at(index), value);
+    const VectorT& const_filled = filled;
+    EXPECT_EQ(const_filled.at(index), value);
+  }
+
+  TEST_F(VectorTest, AtOutOfRange)
+  {
+    EXPECT_THROW(filled.at(filled.size()), std::out_of_range);
+    EXPECT_THROW(empty.at(0), std::out_of_range);
   }
 
   TEST_F(VectorTest, PushBack)
@@ -152,7 +213,13 @@ namespace test {
     filled.reserve(newCapacity);
     AssertInvariants(filled, copy.size());
     EXPECT_GE(filled.capacity(), newCapacity);
-    EXPECT_TRUE(std::equal(copy.begin(), copy.end(), filled.begin()));
+    AssertVectorsEqual(filled, copy);
+  }
+
+  TEST_F(VectorTest, ResizeToZero)
+  {
+    filled.resize(0);
+    AssertInvariants(filled, 0);
   }
 
   TEST_F(VectorTest, ResizeWithoutReallocation)
@@ -179,6 +246,7 @@ namespace test {
     filled.reserve(newCapacity);
     filled.shrink_to_fit();
     AssertInvariants(filled, copy.size());
+    AssertVectorsEqual(filled, copy);
     EXPECT_EQ(filled.capacity(), copy.size());
   }
 
@@ -187,14 +255,14 @@ namespace test {
     filled.swap(empty);
     AssertInvariants(filled, 0);
     AssertInvariants(empty, copy.size());
-    EXPECT_TRUE(std::equal(empty.begin(), empty.end(), copy.begin()));
+    AssertVectorsEqual(empty, copy);
   }
 
   TEST_F(VectorTest, SwapSame)
   {
     filled.swap(filled);
     AssertInvariants(filled, copy.size());
-    EXPECT_TRUE(std::equal(filled.begin(), filled.end(), copy.begin()));
+    AssertVectorsEqual(filled, copy);
   }
 
   TEST_F(VectorTest, ClearFilled)
@@ -209,7 +277,7 @@ namespace test {
     AssertInvariants(empty, 0);
   }
 
-  TEST_F(VectorTest, InsertLvalueWithoutReallocation)
+  TEST_F(VectorTest, InsertValueWithoutReallocation)
   {
     filled.reserve(filled.capacity() + 1);
     auto val = VectorT::value_type(18);
@@ -219,32 +287,12 @@ namespace test {
     AssertInvariants(filled, copy.size() + 1);
   }
 
-  TEST_F(VectorTest, InsertRvalueWithoutReallocation)
-  {
-    filled.reserve(filled.capacity() + 1);
-    auto val = VectorT::value_type(18);
-    auto pos = filled.begin() + filled.size() / 2;
-    auto it = filled.insert(pos, std::move(val));
-    EXPECT_EQ(*it, val);
-    AssertInvariants(filled, copy.size() + 1);
-  }
-
-  TEST_F(VectorTest, InsertRvalueWithReallocation)
+  TEST_F(VectorTest, InsertValueWithReallocation)
   {
     filled.shrink_to_fit();
     auto val = VectorT::value_type(18);
     auto pos = filled.begin() + filled.size() / 2;
     auto it = filled.insert(pos, std::move(val));
-    EXPECT_EQ(*it, val);
-    AssertInvariants(filled, copy.size() + 1);
-  }
-
-  TEST_F(VectorTest, InsertLvalueWithReallocation)
-  {
-    filled.shrink_to_fit();
-    auto val = VectorT::value_type(18);
-    auto pos = filled.begin() + filled.size() / 2;
-    auto it = filled.insert(pos, val);
     EXPECT_EQ(*it, val);
     AssertInvariants(filled, copy.size() + 1);
   }
@@ -290,8 +338,7 @@ namespace test {
     auto size = filled.size() * 2;
     filled.assign(size, val);
     AssertInvariants(filled, size);
-    EXPECT_TRUE(std::all_of(filled.begin(), filled.end(),
-        [&val](const auto& x) { return x == val; }));
+    AssertAllElementsEqual(filled, val);
   }
 
   TEST_F(VectorTest, AssignIterator)
@@ -328,8 +375,6 @@ namespace test {
   TEST_F(VectorTest, EmplaceWithReallocation)
   {
     filled.shrink_to_fit();
-    // TODO: remove code duplicating (the same logic in
-    // EmplaceWithoutReallocation)
     auto val = VectorT::value_type(18);
     size_t shift = filled.size() / 2;
     auto pos = filled.begin() + shift;
@@ -368,8 +413,21 @@ namespace test {
     EXPECT_EQ(it, filled.begin() + copy.size() / 2);
   }
 
-  // TODO: Add Tests for: at, operator[]
-  // TODO: Add Tests for: free swap function, free comparison operators
-  // TODO: Think: should we add tests for: size(), capacity(), max_size(),
-  // empty(), [c|r]begin(), [c|r]end(), front(), back(), data() ?
+  TEST(VectorComparison, Equality)
+  {
+    VectorT vec1{ 1, 2, 3 };
+    VectorT vec2{ 1, 2, 3 };
+    VectorT vec3{ 1, 2, 3, 4 };
+    EXPECT_TRUE(vec1 == vec2);
+    EXPECT_TRUE(vec1 == vec1);
+    EXPECT_FALSE(vec1 == vec3);
+  }
+
+  TEST(VectorComparison, LexicographicalOrder)
+  {
+    VectorT vec1{ 1, 2, 3 };
+    VectorT vec2{ 1, 2, 4 };
+    EXPECT_TRUE(vec1 < vec2);
+    EXPECT_FALSE(vec2 < vec1);
+  }
 }
