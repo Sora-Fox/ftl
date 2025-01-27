@@ -152,6 +152,9 @@ namespace ftl {
     void construct_at_end(Args&&...);
     void destroy_at_end() noexcept;
 
+    template <typename... Args>
+    pointer emplace_unsafe(pointer, Args&&...);
+
     void reallocate_storage(size_type);
     void move_right_uninitialized(pointer);
     void move_right(pointer, pointer);
@@ -409,26 +412,18 @@ namespace ftl {
   vector<T, Allocator>::insert(const_iterator position, size_type size,
       const_reference value)
   {
-    // TODO: too complex logic
-    // Add emplace_unsafe method that emplace element without checks and
-    // reallocations (it might take raw pointer) and then call it here in loop
-    // and refactor emplace using it as well Should we reallocate_storage and
-    // then call emplace in the loop
     size_type shift = position - begin();
-    value_type val = value;
     if (end_ == end_cap_()) {
       reallocate_storage(growth_capacity(capacity() + size));
     }
     pointer pos = begin_ + shift;
     if (pos == end_) {
       for (size_type i = 0; i != size; ++i) {
-        construct_at_end(std::move(val));
+        construct_at_end(value);
       }
     } else {
-      pointer last = pos + size;
-      move_right(pos, last);
-      for (; pos != last; ++pos) {
-        *pos = val;
+      for (; size != 0; --size) {
+        pos = emplace_unsafe(pos, value) + 1;
       }
     }
     return iterator(begin_ + shift);
@@ -467,14 +462,11 @@ namespace ftl {
       return iterator(end_ - 1);
     }
     size_type shift = position - cbegin();
-    value_type value(std::forward<Args>(args)...);
     if (end_ == end_cap_()) {
       reallocate_storage(growth_capacity(capacity() + 1));
     }
     pointer pos = begin_ + shift;
-    move_right(pos, pos + 1);
-    *pos = std::move(value);
-    return iterator(pos);
+    return iterator(emplace_unsafe(pos, std::forward<Args>(args)...));
   }
 
   template <typename T, typename Allocator>
@@ -605,6 +597,17 @@ namespace ftl {
     begin_ = new_begin;
     end_ = new_end;
     end_cap_() = new_end_cap;
+  }
+
+  template <typename T, typename Allocator>
+  template <typename... Args>
+  typename vector<T, Allocator>::pointer
+  vector<T, Allocator>::emplace_unsafe(pointer position, Args&&... args)
+  {
+    value_type value(std::forward<Args>(args)...);
+    move_right(position, position + 1);
+    *position = std::move(value);
+    return position;
   }
 
   template <typename T, typename Allocator>
