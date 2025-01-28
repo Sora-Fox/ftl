@@ -290,6 +290,7 @@ namespace ftl {
   {
     if (size() >= new_size) {
       destroy_at_end(begin_ + new_size);
+      return;
     }
     if (capacity() < new_size) {
       reallocate_storage(growth_capacity(new_size));
@@ -505,8 +506,7 @@ namespace ftl {
     if (count == 0) {
       return iterator(first_ptr);
     }
-    pointer swap_start = end_ - count;
-    std::swap_ranges(first_ptr, last_ptr, swap_start);
+    std::move(last_ptr, end_, first_ptr);
     destroy_at_end(end_ - count);
     return iterator(first_ptr);
   }
@@ -515,14 +515,14 @@ namespace ftl {
   typename vector<T, Allocator>::const_reverse_iterator
   vector<T, Allocator>::crbegin() const noexcept
   {
-    return reverse_iterator(end());
+    return const_reverse_iterator(end());
   }
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::const_reverse_iterator
   vector<T, Allocator>::crend() const noexcept
   {
-    return reverse_iterator(begin());
+    return const_reverse_iterator(begin());
   }
 
   template <typename T, typename Allocator>
@@ -627,9 +627,8 @@ namespace ftl {
   typename vector<T, Allocator>::pointer
   vector<T, Allocator>::emplace_unsafe(pointer position, Args&&... args)
   {
-    value_type value(std::forward<Args>(args)...);
     move_right(position, position + 1);
-    *position = std::move(value);
+    *position = value_type(std::forward<Args>(args)...);
     return position;
   }
 
