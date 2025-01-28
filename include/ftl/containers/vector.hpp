@@ -148,9 +148,11 @@ namespace ftl {
     void allocate(size_type);
     void deallocate() noexcept;
 
+    template <typename InputIt, detail::enable_if_input_iterator<InputIt> = 0>
+    void construct_at_end(InputIt, InputIt);
     template <typename... Args>
-    void construct_at_end(Args&&...);
-    void destroy_at_end() noexcept;
+    void construct_at_end(size_type, Args&&...);
+    void destroy_at_end(pointer) noexcept;
 
     template <typename... Args>
     pointer emplace_unsafe(pointer, Args&&...);
@@ -174,9 +176,7 @@ namespace ftl {
   {
     allocate(rhs.size());
     detail::exception_guard<Deleter> guard(Deleter(*this));
-    for (auto i = rhs.begin_, end = rhs.end_; i != end; ++i) {
-      construct_at_end(*i);
-    }
+    construct_at_end(rhs.begin_, rhs.end_);
     guard.complete();
   }
 
@@ -209,9 +209,7 @@ namespace ftl {
   {
     allocate(size);
     detail::exception_guard<Deleter> guard(Deleter(*this));
-    for (; end_ != begin_ + size;) {
-      construct_at_end(value);
-    }
+    construct_at_end(size, value);
     guard.complete();
   }
 
@@ -235,9 +233,7 @@ namespace ftl {
   {
     allocate(list.size());
     detail::exception_guard<Deleter> guard(Deleter(*this));
-    for (auto i = list.begin(), end = list.end(); i != end; ++i) {
-      construct_at_end(*i);
-    }
+    construct_at_end(list.begin(), list.end());
     guard.complete();
   }
 
@@ -293,17 +289,12 @@ namespace ftl {
   void vector<T, Allocator>::resize(size_type new_size, const_reference value)
   {
     if (size() >= new_size) {
-      for (pointer new_end = begin_ + new_size; end_ != new_end;) {
-        destroy_at_end();
-      }
-      return;
+      destroy_at_end(begin_ + new_size);
     }
     if (capacity() < new_size) {
       reallocate_storage(growth_capacity(new_size));
     }
-    for (pointer new_end = begin_ + new_size; end_ != new_end;) {
-      construct_at_end(value);
-    }
+    construct_at_end(new_size - size(), value);
   }
 
   template <typename T, typename Allocator>
@@ -318,9 +309,7 @@ namespace ftl {
   template <typename T, typename Allocator>
   void vector<T, Allocator>::clear() noexcept
   {
-    for (; end_ != begin_;) {
-      destroy_at_end();
-    }
+    destroy_at_end(begin_);
   }
 
   template <typename T, typename Allocator>
@@ -347,7 +336,7 @@ namespace ftl {
   template <typename T, typename Allocator>
   void vector<T, Allocator>::pop_back()
   {
-    destroy_at_end();
+    destroy_at_end(end_ - 1);
   }
 
   template <typename T, typename Allocator>
@@ -379,9 +368,7 @@ namespace ftl {
       return;
     }
     clear();
-    for (; size != 0; --size) {
-      construct_at_end(value);
-    }
+    construct_at_end(size, value);
   }
 
   template <typename T, typename Allocator>
@@ -403,9 +390,7 @@ namespace ftl {
       return;
     }
     clear();
-    for (auto i = list.begin(), end = list.end(); i != end; ++i) {
-      construct_at_end(*i);
-    }
+    construct_at_end(list.begin(), list.end());
   }
 
   template <typename T, typename Allocator>
@@ -433,9 +418,7 @@ namespace ftl {
     }
     pointer pos = begin_ + shift;
     if (pos == end_) {
-      for (size_type i = 0; i != size; ++i) {
-        construct_at_end(value);
-      }
+      construct_at_end(size, value);
     } else {
       for (; size != 0; --size) {
         pos = emplace_unsafe(pos, value) + 1;
@@ -469,9 +452,7 @@ namespace ftl {
     }
     pointer pos = begin_ + shift;
     if (pos == end_) {
-      for (auto i = list.begin(), end = list.end(); i != end; ++i) {
-        construct_at_end(*i);
-      }
+      construct_at_end(list.begin(), list.end());
     } else {
       for (auto i = list.begin(), end = list.end(); i != end; ++i) {
         pos = emplace_unsafe(pos, *i) + 1;
@@ -504,7 +485,7 @@ namespace ftl {
     if (end_ == end_cap_()) {
       reallocate_storage(growth_capacity(capacity() + 1));
     }
-    construct_at_end(std::forward<Args>(args)...);
+    construct_at_end(1, std::forward<Args>(args)...);
   }
 
   template <typename T, typename Allocator>
@@ -526,9 +507,7 @@ namespace ftl {
     }
     pointer swap_start = end_ - count;
     std::swap_ranges(first_ptr, last_ptr, swap_start);
-    for (size_type i = 0; i != count; ++i) {
-      destroy_at_end();
-    }
+    destroy_at_end(end_ - count);
     return iterator(first_ptr);
   }
 
@@ -592,17 +571,28 @@ namespace ftl {
 
   template <typename T, typename Allocator>
   template <typename... Args>
-  void vector<T, Allocator>::construct_at_end(Args&&... args)
+  void vector<T, Allocator>::construct_at_end(size_type size, Args&&... args)
   {
-    AllocTraits::construct(alloc_(), end_, args...);
-    ++end_;
+    for (size_type i = 0; i != size; ++i, ++end_) {
+      AllocTraits::construct(alloc_(), end_, args...);
+    }
   }
 
   template <typename T, typename Allocator>
-  void vector<T, Allocator>::destroy_at_end() noexcept
+  template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
+  void vector<T, Allocator>::construct_at_end(InputIt first, InputIt last)
   {
-    AllocTraits::destroy(alloc_(), end_ - 1);
-    --end_;
+    for (; first != last; ++first, ++end_) {
+      AllocTraits::construct(alloc_(), end_, *first);
+    }
+  }
+
+  template <typename T, typename Allocator>
+  void vector<T, Allocator>::destroy_at_end(pointer new_end) noexcept
+  {
+    for (; end_ != new_end; --end_) {
+      AllocTraits::destroy(alloc_(), end_ - 1);
+    }
   }
 
   template <typename T, typename Allocator>
@@ -646,9 +636,7 @@ namespace ftl {
   template <typename T, typename Allocator>
   void vector<T, Allocator>::move_right_uninitialized(pointer begin)
   {
-    for (pointer end = end_; begin != end; ++begin) {
-      construct_at_end(std::move(*begin));
-    }
+    construct_at_end(end_ - begin, std::move(*begin));
   }
 
   template <typename T, typename Allocator>
