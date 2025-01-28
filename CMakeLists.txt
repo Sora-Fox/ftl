@@ -12,6 +12,6 @@ option(FTL_ENABLE_TESTS "Enable building tests for FTL library" OFF)
 if (FTL_ENABLE_TESTS)
     enable_testing()
     include(cmake/FetchGoogleTest.cmake)
-    add_subdirectory(src/tests)
+    add_subdirectory(tests)
 endif()
 
