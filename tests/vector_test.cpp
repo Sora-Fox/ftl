@@ -411,6 +411,9 @@ namespace test {
     auto it = filled.erase(first, last);
     AssertInvariants(filled, copy.size() - count);
     EXPECT_EQ(it, filled.begin() + copy.size() / 2);
+    EXPECT_TRUE(std::equal(filled.begin(), it, copy.begin()));
+    EXPECT_TRUE(std::equal(it, filled.end(),
+        copy.begin() + (it - filled.begin()) + count));
   }
 
   TEST(VectorComparison, Equality)
