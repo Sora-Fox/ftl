@@ -6,13 +6,10 @@
 #define FTL_CONTAINERS_VECTOR_HPP
 
 #include <algorithm>
-#include <initializer_list>
 #include <iterator>
 #include <limits>
 #include <memory>
-#include <stdexcept>
 #include <type_traits>
-#include <utility>
 #include "../internal/compressed_pair.hpp"
 #include "../internal/exception_guard.hpp"
 #include "../internal/wrap_iterator.hpp"
@@ -126,6 +123,8 @@ namespace ftl {
 
     iterator begin() noexcept { return iterator(begin_); }
     iterator end() noexcept { return iterator(end_); }
+    const_iterator begin() const noexcept { return const_iterator(begin_); }
+    const_iterator end() const noexcept { return const_iterator(end_); }
     const_iterator cbegin() const noexcept { return const_iterator(begin_); }
     const_iterator cend() const noexcept { return const_iterator(end_); }
     reverse_iterator rbegin() noexcept { return reverse_iterator(end()); }
@@ -778,7 +777,21 @@ namespace ftl {
   }
 
 #endif
-  // TODO: vector should be hashable
+}
+
+namespace std {
+  template <typename T, typename Allocator>
+  struct hash<ftl::vector<T, Allocator>>
+  {
+    size_t operator()(const ftl::vector<T, Allocator>& vec) const
+    {
+      size_t seed = vec.size();
+      for (const auto& elem : vec) {
+        seed ^= hash<T>{}(elem) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      }
+      return seed;
+    }
+  };
 }
 
 #endif
