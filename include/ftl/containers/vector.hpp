@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <initializer_list>
 #include <iterator>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <type_traits>
@@ -550,7 +551,12 @@ namespace ftl {
   typename vector<T, Allocator>::size_type
   vector<T, Allocator>::max_size() const noexcept
   {
-    return AllocTraits::max_size(alloc_());
+    using size_limits = std::numeric_limits<size_type>;
+    using diff_limits = std::numeric_limits<difference_type>;
+    const size_type alloc_max = AllocTraits::max_size(alloc_());
+    constexpr size_type diff_max = static_cast<size_type>(diff_limits::max());
+    constexpr size_type bytes_max = size_limits::max() / sizeof(T);
+    return std::min({ alloc_max, diff_max, bytes_max });
   }
 
   template <typename T, typename Allocator>
@@ -725,7 +731,6 @@ namespace ftl {
   }
 
 #if !defined(FTL_CPP20_FEATURES)
-  // TODO: should this macro be above operator==?
 
   template <typename T, typename Allocator>
   bool
@@ -764,7 +769,6 @@ namespace ftl {
 
 #else
 
-  // TODO: ensure that it's correct
   template <typename T, typename Allocator>
   auto
   operator<=>(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs)
