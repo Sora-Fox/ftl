@@ -574,7 +574,7 @@ namespace ftl {
   void vector<T, Allocator>::construct_at_end(size_type size, Args&&... args)
   {
     for (size_type i = 0; i != size; ++i, ++end_) {
-      AllocTraits::construct(alloc_(), end_, args...);
+      AllocTraits::construct(alloc_(), end_, std::forward<Args>(args)...);
     }
   }
 
