@@ -9,35 +9,10 @@
 #include <iterator>
 #include <limits>
 #include <memory>
-#include <type_traits>
 #include "../internal/compressed_pair.hpp"
+#include "../internal/enable_if_input_iterator.hpp"
 #include "../internal/exception_guard.hpp"
 #include "../internal/wrap_iterator.hpp"
-
-namespace ftl {
-  namespace detail {
-
-    template <typename...>
-    using void_t = void;
-
-    template <typename T, typename = void>
-    struct is_input_iterator : std::false_type
-    {
-    };
-
-    template <typename T>
-    struct is_input_iterator<T,
-        void_t<typename std::iterator_traits<T>::iterator_category>> :
-      std::is_base_of<std::input_iterator_tag,
-          typename std::iterator_traits<T>::iterator_category>
-    {
-    };
-
-    template <typename Iterator>
-    using enable_if_input_iterator =
-        typename std::enable_if<is_input_iterator<Iterator>::value, int>::type;
-  }
-}
 
 namespace ftl {
 
