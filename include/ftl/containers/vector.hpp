@@ -113,9 +113,6 @@ namespace ftl {
     size_type max_size() const noexcept;
     allocator_type get_allocator() const noexcept { return alloc_(); }
 
-  private:
-    class Deleter;
-
     pointer begin_;
     pointer end_;
     detail::compressed_pair<pointer, allocator_type> end_cap_alloc_;
@@ -150,9 +147,7 @@ namespace ftl {
   vector<T, Allocator>::vector(const vector& rhs) : vector(rhs.alloc_())
   {
     allocate(rhs.size());
-    detail::exception_guard<Deleter> guard(Deleter(*this));
     construct_at_end(rhs.begin_, rhs.end_);
-    guard.complete();
   }
 
   template <typename T, typename Allocator>
@@ -183,9 +178,7 @@ namespace ftl {
     vector(alloc)
   {
     allocate(size);
-    detail::exception_guard<Deleter> guard(Deleter(*this));
     construct_at_end(size, value);
-    guard.complete();
   }
 
   template <typename T, typename Allocator>
@@ -194,11 +187,9 @@ namespace ftl {
       const allocator_type& alloc) :
     vector(alloc)
   {
-    detail::exception_guard<Deleter> guard(Deleter(*this));
     for (; first != last; ++first) {
       emplace_back(*first);
     }
-    guard.complete();
   }
 
   template <typename T, typename Allocator>
@@ -207,9 +198,7 @@ namespace ftl {
     vector(alloc)
   {
     allocate(list.size());
-    detail::exception_guard<Deleter> guard(Deleter(*this));
     construct_at_end(list.begin(), list.end());
-    guard.complete();
   }
 
   template <typename T, typename Allocator>
@@ -513,17 +502,6 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  class vector<T, Allocator>::Deleter
-  {
-  public:
-    Deleter(vector& v) : v_(v) {}
-    void operator()() { v_.deallocate(); }
-
-  private:
-    vector& v_;
-  };
-
-  template <typename T, typename Allocator>
   void vector<T, Allocator>::allocate(size_type size)
   {
     if (size > max_size()) {
@@ -573,7 +551,6 @@ namespace ftl {
   template <typename T, typename Allocator>
   void vector<T, Allocator>::reallocate_storage(size_type new_capacity)
   {
-    // TODO: too much responsibility: should be shrink storage and expand?
     pointer new_begin = AllocTraits::allocate(alloc_(), new_capacity);
     pointer new_end = new_begin;
     pointer new_end_cap = new_begin + new_capacity;
