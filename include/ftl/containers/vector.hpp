@@ -167,13 +167,14 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  vector<T, Allocator>::vector(size_type size, const allocator_type& alloc) :
+  vector<T, Allocator>::vector(const size_type size,
+      const allocator_type& alloc) :
     vector(size, value_type(), alloc)
   {
   }
 
   template <typename T, typename Allocator>
-  vector<T, Allocator>::vector(size_type size, const_reference value,
+  vector<T, Allocator>::vector(const size_type size, const_reference value,
       const allocator_type& alloc) :
     vector(alloc)
   {
@@ -183,7 +184,7 @@ namespace ftl {
 
   template <typename T, typename Allocator>
   template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
-  vector<T, Allocator>::vector(InputIt first, InputIt last,
+  vector<T, Allocator>::vector(InputIt first, const InputIt last,
       const allocator_type& alloc) :
     vector(alloc)
   {
@@ -193,7 +194,7 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  vector<T, Allocator>::vector(std::initializer_list<value_type> list,
+  vector<T, Allocator>::vector(const std::initializer_list<value_type> list,
       const allocator_type& alloc) :
     vector(alloc)
   {
@@ -225,20 +226,20 @@ namespace ftl {
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::reference
-  vector<T, Allocator>::operator[](size_type index) noexcept
+  vector<T, Allocator>::operator[](const size_type index) noexcept
   {
     return *(begin_ + index);
   }
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::const_reference
-  vector<T, Allocator>::operator[](size_type index) const noexcept
+  vector<T, Allocator>::operator[](const size_type index) const noexcept
   {
     return *(begin_ + index);
   }
 
   template <typename T, typename Allocator>
-  void vector<T, Allocator>::reserve(size_type new_capacity)
+  void vector<T, Allocator>::reserve(const size_type new_capacity)
   {
     if (new_capacity <= capacity()) {
       return;
@@ -250,7 +251,8 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  void vector<T, Allocator>::resize(size_type new_size, const_reference value)
+  void
+  vector<T, Allocator>::resize(const size_type new_size, const_reference value)
   {
     if (size() >= new_size) {
       destroy_at_end(begin_ + new_size);
@@ -295,7 +297,7 @@ namespace ftl {
   template <typename T, typename Allocator>
   void vector<T, Allocator>::push_back(value_type&& value)
   {
-    emplace_back(std::forward<value_type>(value));
+    emplace_back(std::move(value));
   }
 
   template <typename T, typename Allocator>
@@ -306,7 +308,7 @@ namespace ftl {
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::reference
-  vector<T, Allocator>::at(size_type index)
+  vector<T, Allocator>::at(const size_type index)
   {
     if (index >= size()) {
       throw_out_of_range();
@@ -316,7 +318,7 @@ namespace ftl {
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::const_reference
-  vector<T, Allocator>::at(size_type index) const
+  vector<T, Allocator>::at(const size_type index) const
   {
     if (index >= size()) {
       throw_out_of_range();
@@ -325,7 +327,7 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  void vector<T, Allocator>::assign(size_type size, const_reference value)
+  void vector<T, Allocator>::assign(const size_type size, const_reference value)
   {
     if (capacity() < size) {
       vector tmp(size, value);
@@ -338,7 +340,7 @@ namespace ftl {
 
   template <typename T, typename Allocator>
   template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
-  void vector<T, Allocator>::assign(InputIt first, InputIt last)
+  void vector<T, Allocator>::assign(InputIt first, const InputIt last)
   {
     clear();
     for (; first != last; ++first) {
@@ -347,7 +349,8 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  void vector<T, Allocator>::assign(std::initializer_list<value_type> list)
+  void
+  vector<T, Allocator>::assign(const std::initializer_list<value_type> list)
   {
     if (capacity() < list.size()) {
       vector tmp(list);
@@ -360,22 +363,24 @@ namespace ftl {
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::iterator
-  vector<T, Allocator>::insert(const_iterator position, const_reference value)
+  vector<T, Allocator>::insert(const const_iterator position,
+      const_reference value)
   {
     return emplace(position, value);
   }
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::iterator
-  vector<T, Allocator>::insert(const_iterator position, value_type&& value)
+  vector<T, Allocator>::insert(const const_iterator position,
+      value_type&& value)
   {
-    return emplace(position, std::forward<value_type>(value));
+    return emplace(position, std::move(value));
   }
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::iterator
-  vector<T, Allocator>::insert(const_iterator position, size_type size,
-      const_reference value)
+  vector<T, Allocator>::insert(const const_iterator position,
+      const size_type size, const_reference value)
   {
     size_type shift = position - begin();
     if (end_ == end_cap_()) {
@@ -395,8 +400,8 @@ namespace ftl {
   template <typename T, typename Allocator>
   template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
   typename vector<T, Allocator>::iterator
-  vector<T, Allocator>::insert(const_iterator position, InputIt first,
-      InputIt last)
+  vector<T, Allocator>::insert(const const_iterator position, InputIt first,
+      const InputIt last)
   {
     size_type shift = position - cbegin();
     for (; first != last; ++first) {
@@ -408,8 +413,8 @@ namespace ftl {
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::iterator
-  vector<T, Allocator>::insert(const_iterator position,
-      std::initializer_list<value_type> list)
+  vector<T, Allocator>::insert(const const_iterator position,
+      const std::initializer_list<value_type> list)
   {
     size_type shift = position - begin();
     if (size() + list.size() > capacity()) {
@@ -429,7 +434,7 @@ namespace ftl {
   template <typename T, typename Allocator>
   template <typename... Args>
   typename vector<T, Allocator>::iterator
-  vector<T, Allocator>::emplace(const_iterator position, Args&&... args)
+  vector<T, Allocator>::emplace(const const_iterator position, Args&&... args)
   {
     if (position == cend()) {
       emplace_back(std::forward<Args>(args)...);
@@ -455,14 +460,15 @@ namespace ftl {
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::iterator
-  vector<T, Allocator>::erase(const_iterator position)
+  vector<T, Allocator>::erase(const const_iterator position)
   {
     return erase(position, position + 1);
   }
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::iterator
-  vector<T, Allocator>::erase(const_iterator first, const_iterator last)
+  vector<T, Allocator>::erase(const const_iterator first,
+      const const_iterator last)
   {
     pointer first_ptr = begin_ + (first - cbegin());
     pointer last_ptr = begin_ + (last - cbegin());
@@ -502,7 +508,7 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  void vector<T, Allocator>::allocate(size_type size)
+  void vector<T, Allocator>::allocate(const size_type size)
   {
     if (size > max_size()) {
       throw_length_error();
@@ -524,7 +530,8 @@ namespace ftl {
 
   template <typename T, typename Allocator>
   template <typename... Args>
-  void vector<T, Allocator>::construct_at_end(size_type size, Args&&... args)
+  void
+  vector<T, Allocator>::construct_at_end(const size_type size, Args&&... args)
   {
     for (size_type i = 0; i != size; ++i, ++end_) {
       AllocTraits::construct(alloc_(), end_, std::forward<Args>(args)...);
@@ -533,7 +540,7 @@ namespace ftl {
 
   template <typename T, typename Allocator>
   template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
-  void vector<T, Allocator>::construct_at_end(InputIt first, InputIt last)
+  void vector<T, Allocator>::construct_at_end(InputIt first, const InputIt last)
   {
     for (; first != last; ++first, ++end_) {
       AllocTraits::construct(alloc_(), end_, *first);
@@ -549,7 +556,7 @@ namespace ftl {
   }
 
   template <typename T, typename Allocator>
-  void vector<T, Allocator>::reallocate_storage(size_type new_capacity)
+  void vector<T, Allocator>::reallocate_storage(const size_type new_capacity)
   {
     pointer new_begin = AllocTraits::allocate(alloc_(), new_capacity);
     pointer new_end = new_begin;
@@ -601,7 +608,7 @@ namespace ftl {
 
   template <typename T, typename Allocator>
   typename vector<T, Allocator>::size_type
-  vector<T, Allocator>::growth_capacity(size_type new_capacity) const
+  vector<T, Allocator>::growth_capacity(const size_type new_capacity) const
   {
     size_type max_sz = max_size();
     if (new_capacity > max_sz) {
