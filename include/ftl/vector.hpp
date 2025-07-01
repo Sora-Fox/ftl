@@ -2,17 +2,17 @@
 // v3.0. See https://www.gnu.org/licenses/gpl-3.0.txt for license information.
 // SPDX-License-Identifier: GPL-3.0
 
-#ifndef FTL_CONTAINERS_VECTOR_HPP
-#define FTL_CONTAINERS_VECTOR_HPP
+#ifndef FTL_VECTOR_HPP
+#define FTL_VECTOR_HPP
 
 #include <algorithm>
 #include <iterator>
 #include <limits>
 #include <memory>
-#include "../internal/compressed_pair.hpp"
-#include "../internal/enable_if_input_iterator.hpp"
-#include "../internal/exception_guard.hpp"
-#include "../internal/wrap_iterator.hpp"
+#include <type_traits>
+#include "internal/compressed_pair.hpp"
+#include "internal/exception_guard.hpp"
+#include "internal/wrap_iterator.hpp"
 
 namespace ftl {
 
