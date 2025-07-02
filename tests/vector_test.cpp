@@ -2,7 +2,7 @@
 #include <initializer_list>
 #include <iterator>
 #include <numeric>
-#include <ftl/core.hpp>
+#include <ftl/vector.hpp>
 #include <gtest/gtest.h>
 
 namespace test {
