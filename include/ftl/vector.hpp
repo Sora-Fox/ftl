@@ -39,6 +39,8 @@ namespace ftl {
     using size_type = typename AllocTraits::size_type;
     using difference_type = typename AllocTraits::difference_type;
 
+    static_assert(std::is_same_v<typename AllocTraits::value_type, value_type>,
+        "Allocator::value_type for ftl::vector must be same as T");
     static_assert(std::is_nothrow_default_constructible_v<allocator_type>,
         "Allocator for ftl::vector must be nothrow default constructible");
     static_assert(std::is_nothrow_copy_constructible_v<allocator_type>,
@@ -49,40 +51,57 @@ namespace ftl {
     vector() noexcept = default;
     vector(const vector&);
     vector(vector&&) noexcept;
-    vector(const vector&, const allocator_type&);
-    vector(vector&&, const allocator_type&) noexcept;
+    vector(const vector&, const allocator_type&);     // TODO: impl
+    vector(vector&&, const allocator_type&) noexcept; // TODO: impl
     explicit vector(const allocator_type&) noexcept;
-    explicit vector(size_type, const allocator_type& = allocator_type());
-    vector(size_type, const_reference,
-        const allocator_type& = allocator_type());
+    explicit vector(size_type, const allocator_type& = {});
+    vector(size_type, const_reference, const allocator_type& = {});
     template <typename InputIt, detail::enable_if_input_iterator<InputIt> = 0>
-    vector(InputIt, InputIt, const allocator_type& = allocator_type());
-    vector(std::initializer_list<value_type>,
-        const allocator_type& = allocator_type());
+    vector(InputIt, InputIt, const allocator_type& = {});
+    vector(std::initializer_list<value_type>, const allocator_type& = {});
     ~vector();
 
     vector& operator=(const vector&);
     vector& operator=(vector&&) noexcept;
-    reference operator[](size_type i) noexcept;
-    const_reference operator[](size_type i) const noexcept;
+    vector& operator=(std::initializer_list<value_type>); // TODO: impl
 
+    iterator begin() noexcept;
+    iterator end() noexcept;
+    const_iterator begin() const noexcept;
+    const_iterator end() const noexcept;
+    reverse_iterator rbegin() noexcept;
+    reverse_iterator rend() noexcept;
+    const_iterator cbegin() const noexcept;
+    const_iterator cend() const noexcept;
+    const_reverse_iterator crbegin() const noexcept;
+    const_reverse_iterator crend() const noexcept;
+
+    size_type size() const noexcept;
+    size_type max_size() const noexcept;
+    void resize(size_type, const_reference = {});
+    size_type capacity() const noexcept;
+    bool empty() const noexcept;
     void reserve(size_type);
-    void resize(size_type, const_reference = value_type());
     void shrink_to_fit();
-    void clear() noexcept;
-    void swap(vector&) noexcept;
 
-    void push_back(const_reference);
-    void push_back(value_type&&);
-    void pop_back();
-
+    reference operator[](size_type) noexcept;
+    const_reference operator[](size_type) const noexcept;
     reference at(size_type);
     const_reference at(size_type) const;
+    reference front() noexcept;
+    const_reference front() const noexcept;
+    reference back() noexcept;
+    const_reference back() const noexcept;
+    pointer data() noexcept;
+    const_pointer data() const noexcept;
 
     void assign(size_type, const_reference);
     template <typename InputIt, detail::enable_if_input_iterator<InputIt> = 0>
     void assign(InputIt, InputIt);
     void assign(std::initializer_list<value_type>);
+    void push_back(const_reference);
+    void push_back(value_type&&);
+    void pop_back();
 
     iterator insert(const_iterator, const_reference);
     iterator insert(const_iterator, value_type&&);
@@ -90,37 +109,17 @@ namespace ftl {
     template <typename InputIt, detail::enable_if_input_iterator<InputIt> = 0>
     iterator insert(const_iterator, InputIt, InputIt);
     iterator insert(const_iterator, std::initializer_list<value_type>);
+    iterator erase(const_iterator);
+    iterator erase(const_iterator, const_iterator);
+
+    void swap(vector&) noexcept;
+    void clear() noexcept;
 
     template <typename... Args>
     iterator emplace(const_iterator, Args&&...);
     template <typename... Args>
     void emplace_back(Args&&...);
 
-    iterator erase(const_iterator);
-    iterator erase(const_iterator, const_iterator);
-
-    reference front() noexcept;
-    reference back() noexcept;
-    pointer data() noexcept;
-    const_reference front() const noexcept;
-    const_reference back() const noexcept;
-    const_pointer data() const noexcept;
-
-    iterator begin() noexcept;
-    iterator end() noexcept;
-    const_iterator begin() const noexcept;
-    const_iterator end() const noexcept;
-    const_iterator cbegin() const noexcept;
-    const_iterator cend() const noexcept;
-    reverse_iterator rbegin() noexcept;
-    reverse_iterator rend() noexcept;
-    const_reverse_iterator crbegin() const noexcept;
-    const_reverse_iterator crend() const noexcept;
-
-    bool empty() const noexcept;
-    size_type size() const noexcept;
-    size_type capacity() const noexcept;
-    size_type max_size() const noexcept;
     allocator_type get_allocator() const noexcept;
 
   private:
@@ -176,13 +175,13 @@ namespace ftl {
   }
 
   template <typename T, typename A>
-  vector<T, A>::vector(size_type size, const allocator_type& alloc) :
+  vector<T, A>::vector(const size_type size, const allocator_type& alloc) :
     vector(size, value_type(), alloc)
   {
   }
 
   template <typename T, typename A>
-  vector<T, A>::vector(size_type size, const_reference value,
+  vector<T, A>::vector(const size_type size, const_reference value,
       const allocator_type& alloc) :
     vector(alloc)
   {
@@ -192,7 +191,7 @@ namespace ftl {
 
   template <typename T, typename A>
   template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
-  vector<T, A>::vector(InputIt first, InputIt last,
+  vector<T, A>::vector(InputIt first, const InputIt last,
       const allocator_type& alloc) :
     vector(alloc)
   {
@@ -202,7 +201,7 @@ namespace ftl {
   }
 
   template <typename T, typename A>
-  vector<T, A>::vector(std::initializer_list<value_type> list,
+  vector<T, A>::vector(const std::initializer_list<value_type> list,
       const allocator_type& alloc) :
     vector(alloc)
   {
@@ -233,33 +232,82 @@ namespace ftl {
   }
 
   template <typename T, typename A>
-  typename vector<T, A>::reference
-  vector<T, A>::operator[](size_type index) noexcept
+  typename vector<T, A>::iterator vector<T, A>::begin() noexcept
   {
-    assert(begin_ + index < end_ &&
-           "ftl::vector::operator[] called with invalid index");
-    return *(begin_ + index);
+    return iterator(begin_);
   }
 
   template <typename T, typename A>
-  typename vector<T, A>::const_reference
-  vector<T, A>::operator[](size_type index) const noexcept
+  typename vector<T, A>::iterator vector<T, A>::end() noexcept
   {
-    assert(begin_ + index < end_ &&
-           "ftl::vector::operator[] called with invalid index");
-    return *(begin_ + index);
+    return iterator(end_);
   }
 
   template <typename T, typename A>
-  void vector<T, A>::reserve(size_type new_capacity)
+  typename vector<T, A>::const_iterator vector<T, A>::begin() const noexcept
   {
-    if (new_capacity <= capacity()) {
-      return;
-    }
-    if (new_capacity > max_size()) {
-      throw_length_error();
-    }
-    reallocate_storage(new_capacity);
+    return const_iterator(begin_);
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::const_iterator vector<T, A>::end() const noexcept
+  {
+    return const_iterator(end_);
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::reverse_iterator vector<T, A>::rbegin() noexcept
+  {
+    return reverse_iterator(end());
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::reverse_iterator vector<T, A>::rend() noexcept
+  {
+    return reverse_iterator(begin());
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::const_iterator vector<T, A>::cbegin() const noexcept
+  {
+    return const_iterator(begin_);
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::const_iterator vector<T, A>::cend() const noexcept
+  {
+    return const_iterator(end_);
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::const_reverse_iterator
+  vector<T, A>::crbegin() const noexcept
+  {
+    return const_reverse_iterator(end());
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::const_reverse_iterator
+  vector<T, A>::crend() const noexcept
+  {
+    return const_reverse_iterator(begin());
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::size_type vector<T, A>::size() const noexcept
+  {
+    return end_ - begin_;
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::size_type vector<T, A>::max_size() const noexcept
+  {
+    using size_limits = std::numeric_limits<size_type>;
+    using diff_limits = std::numeric_limits<difference_type>;
+    const size_type alloc_max = AllocTraits::max_size(alloc_);
+    constexpr size_type diff_max = static_cast<size_type>(diff_limits::max());
+    constexpr size_type bytes_max = size_limits::max() / sizeof(T);
+    return std::min({ alloc_max, diff_max, bytes_max });
   }
 
   template <typename T, typename A>
@@ -276,6 +324,30 @@ namespace ftl {
   }
 
   template <typename T, typename A>
+  typename vector<T, A>::size_type vector<T, A>::capacity() const noexcept
+  {
+    return end_cap_ - begin_;
+  }
+
+  template <typename T, typename A>
+  bool vector<T, A>::empty() const noexcept
+  {
+    return begin_ == end_;
+  }
+
+  template <typename T, typename A>
+  void vector<T, A>::reserve(const size_type new_capacity)
+  {
+    if (new_capacity <= capacity()) {
+      return;
+    }
+    if (new_capacity > max_size()) {
+      throw_length_error();
+    }
+    reallocate_storage(new_capacity);
+  }
+
+  template <typename T, typename A>
   void vector<T, A>::shrink_to_fit()
   {
     if (end_ == end_cap_) {
@@ -285,19 +357,112 @@ namespace ftl {
   }
 
   template <typename T, typename A>
-  void vector<T, A>::clear() noexcept
+  typename vector<T, A>::reference
+  vector<T, A>::operator[](const size_type index) noexcept
   {
-    destroy_at_end(begin_);
+    assert(begin_ + index < end_ && "ftl::vector::operator[] out of range");
+    return *(begin_ + index);
   }
 
   template <typename T, typename A>
-  void vector<T, A>::swap(vector& rhs) noexcept
+  typename vector<T, A>::const_reference
+  vector<T, A>::operator[](const size_type index) const noexcept
   {
-    using std::swap;
-    swap(begin_, rhs.begin_);
-    swap(end_, rhs.end_);
-    swap(end_cap_, rhs.end_cap_);
-    swap(alloc_, rhs.alloc_);
+    assert(begin_ + index < end_ && "ftl::vector::operator[] out of range");
+    return *(begin_ + index);
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::reference vector<T, A>::at(size_type index)
+  {
+    if (index >= size()) {
+      throw_out_of_range();
+    }
+    return *(begin_ + index);
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::const_reference
+  vector<T, A>::at(const size_type index) const
+  {
+    if (index >= size()) {
+      throw_out_of_range();
+    }
+    return *(begin_ + index);
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::reference vector<T, A>::front() noexcept
+  {
+    assert(!empty() && "ftl::vector::front() called on empty vector");
+    return *begin_;
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::const_reference vector<T, A>::front() const noexcept
+  {
+    assert(!empty() && "ftl::vector::front() called on empty vector");
+    return *begin_;
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::reference vector<T, A>::back() noexcept
+  {
+    assert(!empty() && "ftl::vector::back() called on empty vector");
+    return *(end_ - 1);
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::const_reference vector<T, A>::back() const noexcept
+  {
+    assert(!empty() && "ftl::vector::back() called on empty vector");
+    return *(end_ - 1);
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::pointer vector<T, A>::data() noexcept
+  {
+    return begin_;
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::const_pointer vector<T, A>::data() const noexcept
+  {
+    return begin_;
+  }
+
+  template <typename T, typename A>
+  void vector<T, A>::assign(const size_type size, const_reference value)
+  {
+    if (capacity() < size) {
+      vector tmp(size, value);
+      swap(tmp);
+      return;
+    }
+    clear();
+    construct_at_end(size, value);
+  }
+
+  template <typename T, typename A>
+  template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
+  void vector<T, A>::assign(InputIt first, const InputIt last)
+  {
+    clear();
+    for (; first != last; ++first) {
+      emplace_back(*first);
+    }
+  }
+
+  template <typename T, typename A>
+  void vector<T, A>::assign(const std::initializer_list<value_type> list)
+  {
+    if (capacity() < list.size()) {
+      vector tmp(list);
+      swap(tmp);
+      return;
+    }
+    clear();
+    construct_at_end(list.begin(), list.end());
   }
 
   template <typename T, typename A>
@@ -316,58 +481,6 @@ namespace ftl {
   void vector<T, A>::pop_back()
   {
     destroy_at_end(end_ - 1);
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::reference vector<T, A>::at(size_type index)
-  {
-    if (index >= size()) {
-      throw_out_of_range();
-    }
-    return *(begin_ + index);
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::const_reference vector<T, A>::at(size_type index) const
-  {
-    if (index >= size()) {
-      throw_out_of_range();
-    }
-    return *(begin_ + index);
-  }
-
-  template <typename T, typename A>
-  void vector<T, A>::assign(size_type size, const_reference value)
-  {
-    if (capacity() < size) {
-      vector tmp(size, value);
-      swap(tmp);
-      return;
-    }
-    clear();
-    construct_at_end(size, value);
-  }
-
-  template <typename T, typename A>
-  template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
-  void vector<T, A>::assign(InputIt first, InputIt last)
-  {
-    clear();
-    for (; first != last; ++first) {
-      emplace_back(*first);
-    }
-  }
-
-  template <typename T, typename A>
-  void vector<T, A>::assign(std::initializer_list<value_type> list)
-  {
-    if (capacity() < list.size()) {
-      vector tmp(list);
-      swap(tmp);
-      return;
-    }
-    clear();
-    construct_at_end(list.begin(), list.end());
   }
 
   template <typename T, typename A>
@@ -405,8 +518,8 @@ namespace ftl {
 
   template <typename T, typename A>
   template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
-  typename vector<T, A>::iterator
-  vector<T, A>::insert(const_iterator position, InputIt first, InputIt last)
+  typename vector<T, A>::iterator vector<T, A>::insert(const_iterator position,
+      InputIt first, const InputIt last)
   {
     size_type shift = position - cbegin();
     for (; first != last; ++first) {
@@ -418,7 +531,7 @@ namespace ftl {
 
   template <typename T, typename A>
   typename vector<T, A>::iterator vector<T, A>::insert(const_iterator position,
-      std::initializer_list<value_type> list)
+      const std::initializer_list<value_type> list)
   {
     size_type shift = position - begin();
     if (size() + list.size() > capacity()) {
@@ -433,6 +546,43 @@ namespace ftl {
       }
     }
     return iterator(begin_ + shift);
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::iterator vector<T, A>::erase(const_iterator position)
+  {
+    return erase(position, position + 1);
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::iterator
+  vector<T, A>::erase(const_iterator first, const_iterator last)
+  {
+    pointer first_ptr = begin_ + (first - cbegin());
+    pointer last_ptr = begin_ + (last - cbegin());
+    const size_type count = last_ptr - first_ptr;
+    if (count == 0) {
+      return iterator(first_ptr);
+    }
+    std::move(last_ptr, end_, first_ptr);
+    destroy_at_end(end_ - count);
+    return iterator(first_ptr);
+  }
+
+  template <typename T, typename A>
+  void vector<T, A>::swap(vector& rhs) noexcept
+  {
+    using std::swap;
+    swap(begin_, rhs.begin_);
+    swap(end_, rhs.end_);
+    swap(end_cap_, rhs.end_cap_);
+    swap(alloc_, rhs.alloc_);
+  }
+
+  template <typename T, typename A>
+  void vector<T, A>::clear() noexcept
+  {
+    destroy_at_end(begin_);
   }
 
   template <typename T, typename A>
@@ -460,158 +610,6 @@ namespace ftl {
       reallocate_storage(growth_capacity(capacity() + 1));
     }
     construct_at_end(1, std::forward<Args>(args)...);
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::iterator vector<T, A>::erase(const_iterator position)
-  {
-    return erase(position, position + 1);
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::iterator
-  vector<T, A>::erase(const_iterator first, const_iterator last)
-  {
-    pointer first_ptr = begin_ + (first - cbegin());
-    pointer last_ptr = begin_ + (last - cbegin());
-    const size_type count = last_ptr - first_ptr;
-    if (count == 0) {
-      return iterator(first_ptr);
-    }
-    std::move(last_ptr, end_, first_ptr);
-    destroy_at_end(end_ - count);
-    return iterator(first_ptr);
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::reference vector<T, A>::front() noexcept
-  {
-    assert(!empty() && "ftl::vector::front() called on empty vector");
-    return *begin_;
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::reference vector<T, A>::back() noexcept
-  {
-    assert(!empty() && "ftl::vector::back() called on empty vector");
-    return *(end_ - 1);
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::pointer vector<T, A>::data() noexcept
-  {
-    return begin_;
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::const_reference vector<T, A>::front() const noexcept
-  {
-    assert(!empty() && "ftl::vector::front() called on empty vector");
-    return *begin_;
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::const_reference vector<T, A>::back() const noexcept
-  {
-    assert(!empty() && "ftl::vector::back() called on empty vector");
-    return *(end_ - 1);
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::const_pointer vector<T, A>::data() const noexcept
-  {
-    return begin_;
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::iterator vector<T, A>::begin() noexcept
-  {
-    return iterator(begin_);
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::iterator vector<T, A>::end() noexcept
-  {
-    return iterator(end_);
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::const_iterator vector<T, A>::begin() const noexcept
-  {
-    return const_iterator(begin_);
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::const_iterator vector<T, A>::end() const noexcept
-  {
-    return const_iterator(end_);
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::const_iterator vector<T, A>::cbegin() const noexcept
-  {
-    return const_iterator(begin_);
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::const_iterator vector<T, A>::cend() const noexcept
-  {
-    return const_iterator(end_);
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::reverse_iterator vector<T, A>::rbegin() noexcept
-  {
-    return reverse_iterator(end());
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::reverse_iterator vector<T, A>::rend() noexcept
-  {
-    return reverse_iterator(begin());
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::const_reverse_iterator
-  vector<T, A>::crbegin() const noexcept
-  {
-    return const_reverse_iterator(end());
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::const_reverse_iterator
-  vector<T, A>::crend() const noexcept
-  {
-    return const_reverse_iterator(begin());
-  }
-
-  template <typename T, typename A>
-  bool vector<T, A>::empty() const noexcept
-  {
-    return begin_ == end_;
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::size_type vector<T, A>::size() const noexcept
-  {
-    return end_ - begin_;
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::size_type vector<T, A>::capacity() const noexcept
-  {
-    return end_cap_ - begin_;
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::size_type vector<T, A>::max_size() const noexcept
-  {
-    using size_limits = std::numeric_limits<size_type>;
-    using diff_limits = std::numeric_limits<difference_type>;
-    const size_type alloc_max = AllocTraits::max_size(alloc_);
-    constexpr size_type diff_max = static_cast<size_type>(diff_limits::max());
-    constexpr size_type bytes_max = size_limits::max() / sizeof(T);
-    return std::min({ alloc_max, diff_max, bytes_max });
   }
 
   template <typename T, typename A>
