@@ -2,8 +2,8 @@
 // v3.0. See https://www.gnu.org/licenses/gpl-3.0.txt for license information.
 // SPDX-License-Identifier: GPL-3.0
 
-#ifndef FTL_INTERNAL_ENABLE_IF_INPUT_ITERATOR
-#define FTL_INTERNAL_ENABLE_IF_INPUT_ITERATOR
+#ifndef FTL_INTERNAL_TYPE_TRAITS_HPP
+#define FTL_INTERNAL_TYPE_TRAITS_HPP
 
 #include <iterator>
 #include <type_traits>
