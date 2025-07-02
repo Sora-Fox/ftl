@@ -47,6 +47,8 @@ namespace ftl {
         "Allocator for ftl::vector must be nothrow copy constructible");
     static_assert(std::is_nothrow_move_constructible_v<allocator_type>,
         "Allocator for ftl::vector must be nothrow move constructible");
+    static_assert(std::is_nothrow_swappable_v<allocator_type>,
+        "Allocator for ftl::vector must be nothrow swappable");
 
     vector() noexcept = default;
     vector(const vector&);
@@ -331,12 +333,12 @@ namespace ftl {
     using diff_limits = std::numeric_limits<difference_type>;
     const size_type alloc_max = AllocTraits::max_size(alloc_);
     constexpr size_type diff_max = static_cast<size_type>(diff_limits::max());
-    constexpr size_type bytes_max = size_limits::max() / sizeof(T);
-    return std::min({ alloc_max, diff_max, bytes_max });
+    constexpr size_type vals_max = size_limits::max() / sizeof(T);
+    return std::min({ alloc_max, diff_max, vals_max });
   }
 
   template <typename T, typename A>
-  void vector<T, A>::resize(size_type new_size, const_reference value)
+  void vector<T, A>::resize(const size_type new_size, const_reference value)
   {
     if (size() >= new_size) {
       destroy_at_end(begin_ + new_size);
@@ -460,8 +462,7 @@ namespace ftl {
   void vector<T, A>::assign(const size_type size, const_reference value)
   {
     if (capacity() < size) {
-      vector tmp(size, value);
-      swap(tmp);
+      vector(size, value).swap(*this);
       return;
     }
     clear();
@@ -470,20 +471,16 @@ namespace ftl {
 
   template <typename T, typename A>
   template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
-  void vector<T, A>::assign(InputIt first, const InputIt last)
+  void vector<T, A>::assign(const InputIt first, const InputIt last)
   {
-    clear();
-    for (; first != last; ++first) {
-      emplace_back(*first);
-    }
+    vector(first, last).swap(*this);
   }
 
   template <typename T, typename A>
   void vector<T, A>::assign(const std::initializer_list<value_type> list)
   {
     if (capacity() < list.size()) {
-      vector tmp(list);
-      swap(tmp);
+      vector(list).swap(*this);
       return;
     }
     clear();
@@ -505,6 +502,7 @@ namespace ftl {
   template <typename T, typename A>
   void vector<T, A>::pop_back()
   {
+    assert(!empty() && "ftl::vector::pop_back() called on empty vector");
     destroy_at_end(end_ - 1);
   }
 
@@ -526,8 +524,9 @@ namespace ftl {
   typename vector<T, A>::iterator vector<T, A>::insert(const_iterator position,
       size_type size, const_reference value)
   {
+    // TODO: Refactor ftl::vector::insert
     size_type shift = position - begin();
-    if (end_ == end_cap_) {
+    if (end_ + size > end_cap_) {
       reallocate_storage(growth_capacity(capacity() + size));
     }
     pointer pos = begin_ + shift;
@@ -546,10 +545,9 @@ namespace ftl {
   typename vector<T, A>::iterator vector<T, A>::insert(const_iterator position,
       InputIt first, const InputIt last)
   {
-    size_type shift = position - cbegin();
-    for (; first != last; ++first) {
+    const size_type shift = position - begin();
+    for (; first != last; ++first, ++position) {
       position = emplace(position, *first);
-      ++position;
     }
     return iterator(begin_ + shift);
   }
@@ -562,15 +560,7 @@ namespace ftl {
     if (size() + list.size() > capacity()) {
       reallocate_storage(growth_capacity(size() + list.size()));
     }
-    pointer pos = begin_ + shift;
-    if (pos == end_) {
-      construct_at_end(list.begin(), list.end());
-    } else {
-      for (auto i = list.begin(), end = list.end(); i != end; ++i) {
-        pos = emplace_unsafe(pos, *i) + 1;
-      }
-    }
-    return iterator(begin_ + shift);
+    return insert(const_iterator{ begin() + shift }, list.begin(), list.end());
   }
 
   template <typename T, typename A>
@@ -583,8 +573,8 @@ namespace ftl {
   typename vector<T, A>::iterator
   vector<T, A>::erase(const_iterator first, const_iterator last)
   {
-    pointer first_ptr = begin_ + (first - cbegin());
-    pointer last_ptr = begin_ + (last - cbegin());
+    pointer first_ptr = begin_ + (first - begin());
+    pointer last_ptr = begin_ + (last - begin());
     const size_type count = last_ptr - first_ptr;
     if (count == 0) {
       return iterator(first_ptr);
@@ -615,11 +605,11 @@ namespace ftl {
   typename vector<T, A>::iterator
   vector<T, A>::emplace(const_iterator position, Args&&... args)
   {
-    if (position == cend()) {
+    if (position == end()) {
       emplace_back(std::forward<Args>(args)...);
       return iterator(end_ - 1);
     }
-    size_type shift = position - cbegin();
+    size_type shift = position - begin();
     if (end_ == end_cap_) {
       reallocate_storage(growth_capacity(capacity() + 1));
     }
@@ -634,7 +624,8 @@ namespace ftl {
     if (end_ == end_cap_) {
       reallocate_storage(growth_capacity(capacity() + 1));
     }
-    construct_at_end(1, std::forward<Args>(args)...);
+    AllocTraits::construct(alloc_, end_, std::forward<Args>(args)...);
+    ++end_;
   }
 
   template <typename T, typename A>
@@ -645,7 +636,7 @@ namespace ftl {
   }
 
   template <typename T, typename A>
-  void vector<T, A>::allocate(size_type size)
+  void vector<T, A>::allocate(const size_type size)
   {
     assert(empty() && "ftl::vector::allocate called on non-empty vector");
     if (size > max_size()) {
@@ -670,7 +661,7 @@ namespace ftl {
 
   template <typename T, typename A>
   template <typename... Args>
-  void vector<T, A>::construct_at_end(size_type size, Args&&... args)
+  void vector<T, A>::construct_at_end(const size_type size, Args&&... args)
   {
     for (size_type i = 0; i != size; ++i, ++end_) {
       AllocTraits::construct(alloc_, end_, args...);
