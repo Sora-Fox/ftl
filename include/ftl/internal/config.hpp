@@ -25,4 +25,10 @@
 #  define FTL_CONSTEXPR_SINCE_CXX14
 #endif
 
+#ifdef _MSC_VER
+#  define FTL_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+#else
+#  define FTL_NO_UNIQUE_ADDRESS [[no_unique_address]]
+#endif
+
 #endif

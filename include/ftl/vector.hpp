@@ -6,11 +6,12 @@
 #define FTL_VECTOR_HPP
 
 #include <algorithm>
+#include <cassert>
 #include <iterator>
 #include <limits>
 #include <memory>
 #include <type_traits>
-#include "internal/compressed_pair.hpp"
+#include <utility>
 #include "internal/exception_guard.hpp"
 #include "internal/wrap_iterator.hpp"
 
@@ -62,12 +63,19 @@ namespace ftl {
     using size_type = typename AllocTraits::size_type;
     using difference_type = typename AllocTraits::difference_type;
 
-    vector();
+    static_assert(std::is_nothrow_default_constructible_v<allocator_type>,
+        "Allocator for ftl::vector must be nothrow default constructible");
+    static_assert(std::is_nothrow_copy_constructible_v<allocator_type>,
+        "Allocator for ftl::vector must be nothrow copy constructible");
+    static_assert(std::is_nothrow_move_constructible_v<allocator_type>,
+        "Allocator for ftl::vector must be nothrow move constructible");
+
+    vector() noexcept = default;
     vector(const vector&);
     vector(vector&&) noexcept;
     vector(const vector&, const allocator_type&);
-    vector(vector&&, const allocator_type&);
-    explicit vector(const allocator_type&);
+    vector(vector&&, const allocator_type&) noexcept;
+    explicit vector(const allocator_type&) noexcept;
     explicit vector(size_type, const allocator_type& = allocator_type());
     vector(size_type, const_reference,
         const allocator_type& = allocator_type());
@@ -140,9 +148,10 @@ namespace ftl {
     allocator_type get_allocator() const noexcept;
 
   private:
-    pointer begin_;
-    pointer end_;
-    detail::compressed_pair<pointer, allocator_type> end_cap_alloc_;
+    pointer begin_ = nullptr;
+    pointer end_ = nullptr;
+    pointer end_cap_ = nullptr;
+    FTL_NO_UNIQUE_ADDRESS allocator_type alloc_{};
 
     void allocate(size_type);
     void deallocate() noexcept;
@@ -163,15 +172,10 @@ namespace ftl {
 
     void throw_out_of_range() const;
     void throw_length_error() const;
-
-    pointer& end_cap_() noexcept;
-    allocator_type& alloc_() noexcept;
-    const pointer& end_cap_() const noexcept;
-    const allocator_type& alloc_() const noexcept;
   };
 
   template <typename T, typename A>
-  vector<T, A>::vector(const vector& rhs) : vector(rhs.alloc_())
+  vector<T, A>::vector(const vector& rhs) : vector(rhs.alloc_)
   {
     allocate(rhs.size());
     construct_at_end(rhs.begin_, rhs.end_);
@@ -181,15 +185,17 @@ namespace ftl {
   vector<T, A>::vector(vector&& rhs) noexcept :
     begin_(std::exchange(rhs.begin_, nullptr)),
     end_(std::exchange(rhs.end_, nullptr)),
-    end_cap_alloc_(std::move(rhs.end_cap_alloc_))
+    end_cap_(std::exchange(rhs.end_cap_, nullptr)),
+    alloc_(std::move(rhs.alloc_))
   {
   }
 
   template <typename T, typename A>
-  vector<T, A>::vector(const allocator_type& alloc) :
+  vector<T, A>::vector(const allocator_type& alloc) noexcept :
     begin_(nullptr),
     end_(nullptr),
-    end_cap_alloc_(nullptr, alloc)
+    end_cap_(nullptr),
+    alloc_(alloc)
   {
   }
 
@@ -296,7 +302,7 @@ namespace ftl {
   template <typename T, typename A>
   void vector<T, A>::shrink_to_fit()
   {
-    if (end_ == end_cap_()) {
+    if (end_ == end_cap_) {
       return;
     }
     reallocate_storage(size());
@@ -314,7 +320,8 @@ namespace ftl {
     using std::swap;
     swap(begin_, rhs.begin_);
     swap(end_, rhs.end_);
-    swap(end_cap_alloc_, rhs.end_cap_alloc_);
+    swap(end_cap_, rhs.end_cap_);
+    swap(alloc_, rhs.alloc_);
   }
 
   template <typename T, typename A>
@@ -406,7 +413,7 @@ namespace ftl {
       size_type size, const_reference value)
   {
     size_type shift = position - begin();
-    if (end_ == end_cap_()) {
+    if (end_ == end_cap_) {
       reallocate_storage(growth_capacity(capacity() + size));
     }
     pointer pos = begin_ + shift;
@@ -462,7 +469,7 @@ namespace ftl {
       return iterator(end_ - 1);
     }
     size_type shift = position - cbegin();
-    if (end_ == end_cap_()) {
+    if (end_ == end_cap_) {
       reallocate_storage(growth_capacity(capacity() + 1));
     }
     pointer pos = begin_ + shift;
@@ -473,7 +480,7 @@ namespace ftl {
   template <typename... Args>
   void vector<T, A>::emplace_back(Args&&... args)
   {
-    if (end_ == end_cap_()) {
+    if (end_ == end_cap_) {
       reallocate_storage(growth_capacity(capacity() + 1));
     }
     construct_at_end(1, std::forward<Args>(args)...);
@@ -617,7 +624,7 @@ namespace ftl {
   template <typename T, typename A>
   typename vector<T, A>::size_type vector<T, A>::capacity() const noexcept
   {
-    return end_cap_() - begin_;
+    return end_cap_ - begin_;
   }
 
   template <typename T, typename A>
@@ -625,7 +632,7 @@ namespace ftl {
   {
     using size_limits = std::numeric_limits<size_type>;
     using diff_limits = std::numeric_limits<difference_type>;
-    const size_type alloc_max = AllocTraits::max_size(alloc_());
+    const size_type alloc_max = AllocTraits::max_size(alloc_);
     constexpr size_type diff_max = static_cast<size_type>(diff_limits::max());
     constexpr size_type bytes_max = size_limits::max() / sizeof(T);
     return std::min({ alloc_max, diff_max, bytes_max });
@@ -633,9 +640,9 @@ namespace ftl {
 
   template <typename T, typename A>
   typename vector<T, A>::allocator_type
-  get_vector<T, A>::allocator() const noexcept
+  vector<T, A>::get_allocator() const noexcept
   {
-    return alloc_();
+    return alloc_;
   }
 
   template <typename T, typename A>
@@ -645,9 +652,9 @@ namespace ftl {
     if (size > max_size()) {
       throw_length_error();
     }
-    begin_ = AllocTraits::allocate(alloc_(), size);
+    begin_ = AllocTraits::allocate(alloc_, size);
     end_ = begin_;
-    end_cap_() = begin_ + size;
+    end_cap_ = begin_ + size;
   }
 
   template <typename T, typename A>
@@ -655,10 +662,10 @@ namespace ftl {
   {
     if (begin_ != nullptr) {
       clear();
-      AllocTraits::deallocate(alloc_(), begin_, capacity());
+      AllocTraits::deallocate(alloc_, begin_, capacity());
       begin_ = nullptr;
       end_ = nullptr;
-      end_cap_() = nullptr;
+      end_cap_ = nullptr;
     }
   }
 
@@ -667,7 +674,7 @@ namespace ftl {
   void vector<T, A>::construct_at_end(size_type size, Args&&... args)
   {
     for (size_type i = 0; i != size; ++i, ++end_) {
-      AllocTraits::construct(alloc_(), end_, args...);
+      AllocTraits::construct(alloc_, end_, args...);
     }
   }
 
@@ -676,7 +683,7 @@ namespace ftl {
   void vector<T, A>::construct_at_end(InputIt first, InputIt last)
   {
     for (; first != last; ++first, ++end_) {
-      AllocTraits::construct(alloc_(), end_, *first);
+      AllocTraits::construct(alloc_, end_, *first);
     }
   }
 
@@ -684,7 +691,7 @@ namespace ftl {
   void vector<T, A>::destroy_at_end(pointer new_end) noexcept
   {
     for (; end_ != new_end; --end_) {
-      AllocTraits::destroy(alloc_(), end_ - 1);
+      AllocTraits::destroy(alloc_, end_ - 1);
     }
   }
 
@@ -692,27 +699,27 @@ namespace ftl {
   void vector<T, A>::reallocate_storage(size_type new_capacity)
   {
     // TODO: too much responsibility: should be shrink storage and expand?
-    pointer new_begin = AllocTraits::allocate(alloc_(), new_capacity);
+    pointer new_begin = AllocTraits::allocate(alloc_, new_capacity);
     pointer new_end = new_begin;
     pointer new_end_cap = new_begin + new_capacity;
     auto deleter = [&]() {
       for (; new_end != new_begin; --new_end) {
-        AllocTraits::destroy(alloc_(), new_end);
+        AllocTraits::destroy(alloc_, new_end);
       }
-      AllocTraits::deallocate(alloc_(), new_begin, new_capacity);
+      AllocTraits::deallocate(alloc_, new_begin, new_capacity);
     };
 
     detail::exception_guard<decltype(deleter)> guard(deleter);
     for (pointer i = begin_, end = new_begin + std::min(new_capacity, size());
         new_end != end; ++new_end, ++i) {
-      AllocTraits::construct(alloc_(), new_end, std::move_if_noexcept(*i));
+      AllocTraits::construct(alloc_, new_end, std::move_if_noexcept(*i));
     }
     guard.complete();
     deallocate();
 
     begin_ = new_begin;
     end_ = new_end;
-    end_cap_() = new_end_cap;
+    end_cap_ = new_end_cap;
   }
 
   template <typename T, typename A>
@@ -765,31 +772,6 @@ namespace ftl {
   void vector<T, A>::throw_length_error() const
   {
     throw std::length_error("ftl::vector length_error");
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::pointer& vector<T, A>::end_cap_() noexcept
-  {
-    return end_cap_alloc_.first();
-  }
-
-  template <typename T, typename A>
-  const typename vector<T, A>::pointer& vector<T, A>::end_cap_() const noexcept
-  {
-    return end_cap_alloc_.first();
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::allocator_type& vector<T, A>::alloc_() noexcept
-  {
-    return end_cap_alloc_.second();
-  }
-
-  template <typename T, typename A>
-  const typename vector<T, A>::allocator_type&
-  vector<T, A>::alloc_() const noexcept
-  {
-    return end_cap_alloc_.second();
   }
 
   template <typename T, typename A>

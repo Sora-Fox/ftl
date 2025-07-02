@@ -5,6 +5,6 @@
 #ifndef FTL_CORE_HPP
 #define FTL_CORE_HPP
 
-#include "containers/vector.hpp"
+#include "vector.hpp"
 
 #endif
