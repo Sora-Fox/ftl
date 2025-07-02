@@ -51,8 +51,8 @@ namespace ftl {
     vector() noexcept = default;
     vector(const vector&);
     vector(vector&&) noexcept;
-    vector(const vector&, const allocator_type&);     // TODO: impl
-    vector(vector&&, const allocator_type&) noexcept; // TODO: impl
+    vector(const vector&, const allocator_type&);
+    vector(vector&&, const allocator_type&) noexcept;
     explicit vector(const allocator_type&) noexcept;
     explicit vector(size_type, const allocator_type& = {});
     vector(size_type, const_reference, const allocator_type& = {});
@@ -63,7 +63,7 @@ namespace ftl {
 
     vector& operator=(const vector&);
     vector& operator=(vector&&) noexcept;
-    vector& operator=(std::initializer_list<value_type>); // TODO: impl
+    vector& operator=(std::initializer_list<value_type>);
 
     iterator begin() noexcept;
     iterator end() noexcept;
@@ -150,10 +150,8 @@ namespace ftl {
   };
 
   template <typename T, typename A>
-  vector<T, A>::vector(const vector& rhs) : vector(rhs.alloc_)
+  vector<T, A>::vector(const vector& rhs) : vector(rhs, rhs.alloc_)
   {
-    allocate(rhs.size());
-    construct_at_end(rhs.begin_, rhs.end_);
   }
 
   template <typename T, typename A>
@@ -162,6 +160,23 @@ namespace ftl {
     end_(std::exchange(rhs.end_, nullptr)),
     end_cap_(std::exchange(rhs.end_cap_, nullptr)),
     alloc_(std::move(rhs.alloc_))
+  {
+  }
+
+  template <typename T, typename A>
+  vector<T, A>::vector(const vector& rhs, const allocator_type& alloc) :
+    vector(alloc)
+  {
+    allocate(rhs.size());
+    construct_at_end(rhs.begin_, rhs.end_);
+  }
+
+  template <typename T, typename A>
+  vector<T, A>::vector(vector&& rhs, const allocator_type& alloc) noexcept :
+    begin_(std::exchange(rhs.begin_, nullptr)),
+    end_(std::exchange(rhs.end_, nullptr)),
+    end_cap_(std::exchange(rhs.end_cap_, nullptr)),
+    alloc_(alloc)
   {
   }
 
@@ -218,16 +233,26 @@ namespace ftl {
   template <typename T, typename A>
   vector<T, A>& vector<T, A>::operator=(const vector& rhs)
   {
-    vector copy = rhs;
-    swap(copy);
+    clear();
+    reserve(rhs.size());
+    construct_at_end(rhs.begin(), rhs.end());
     return *this;
   }
 
   template <typename T, typename A>
   vector<T, A>& vector<T, A>::operator=(vector&& rhs) noexcept
   {
-    deallocate();
-    swap(rhs);
+    vector(std::move(rhs)).swap(*this);
+    return *this;
+  }
+
+  template <typename T, typename A>
+  vector<T, A>&
+  vector<T, A>::operator=(const std::initializer_list<value_type> list)
+  {
+    clear();
+    reserve(list.size());
+    construct_at_end(list.begin(), list.end());
     return *this;
   }
 
