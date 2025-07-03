@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 using VectorT = ftl::vector<int>;
+using namespace std::placeholders;
 
 void test_invariants(const VectorT& vector)
 {
@@ -16,6 +17,199 @@ void test_invariants(const VectorT& vector)
   EXPECT_LE(vector.begin(), vector.end());
   EXPECT_EQ(vector.size(), std::distance(vector.begin(), vector.end()));
 }
+
+TEST(VectorConstructor, Default)
+{
+  const VectorT vector;
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
+}
+
+TEST(VectorConstructor, CopyEmpty)
+{
+  const VectorT src;
+  const VectorT vector(src);
+  EXPECT_EQ(vector, src);
+  test_invariants(vector);
+}
+
+TEST(VectorConstructor, Copy)
+{
+  const VectorT src{ 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+  const VectorT vector(src);
+  EXPECT_EQ(vector, src);
+  test_invariants(vector);
+}
+
+TEST(VectorConstructor, MoveEmpty)
+{
+  VectorT src;
+  const VectorT vector(std::move(src));
+  EXPECT_EQ(vector, VectorT{});
+  test_invariants(vector);
+}
+
+TEST(VectorConstructor, Move)
+{
+  VectorT src{ 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+  const VectorT expected(src);
+  const VectorT vector(std::move(src));
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorConstructor, CopyWithAllocator)
+{
+  const std::allocator<VectorT::value_type> alloc;
+  const VectorT src{ 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+  const VectorT vector(src, alloc);
+  EXPECT_EQ(vector, src);
+  test_invariants(vector);
+}
+
+TEST(VectorConstructor, MoveWithAllocator)
+{
+  const std::allocator<VectorT::value_type> alloc;
+  VectorT src{ 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+  const VectorT expected(src);
+  const VectorT vector(std::move(src), alloc);
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorConstructor, Allocator)
+{
+  const std::allocator<VectorT::value_type> alloc;
+  const VectorT vector(alloc);
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
+}
+
+TEST(VectorConstructor, ZeroSize)
+{
+  const VectorT vector(0);
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
+}
+
+TEST(VectorConstructor, Size)
+{
+  constexpr static VectorT::size_type size = 100;
+  const static auto eq_to_zero = std::bind(std::equal_to<>{}, _1, 0);
+  const VectorT vector(size);
+  EXPECT_EQ(vector.size(), size);
+  EXPECT_TRUE(std::all_of(vector.begin(), vector.end(), eq_to_zero));
+  test_invariants(vector);
+}
+
+TEST(VectorConstructor, ZeroSizeAndValue)
+{
+  const VectorT vector(0, 7);
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
+}
+
+TEST(VectorConstructor, SizeAndValue)
+{
+  constexpr static VectorT::size_type size = 100;
+  constexpr static VectorT::value_type value = 7;
+  const static auto eq_to_value = std::bind(std::equal_to<>{}, _1, value);
+  const VectorT vector(size, value);
+  EXPECT_EQ(vector.size(), size);
+  EXPECT_TRUE(std::all_of(vector.begin(), vector.end(), eq_to_value));
+  test_invariants(vector);
+}
+
+TEST(VectorConstructor, EmptyIterators)
+{
+  const std::initializer_list<VectorT::value_type> values;
+  const VectorT vector(values.begin(), values.end());
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
+}
+
+TEST(VectorConstructor, Iterators)
+{
+  const auto values = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+  const VectorT vector(values.begin(), values.end());
+  EXPECT_EQ(vector.size(), values.size());
+  EXPECT_TRUE(std::equal(vector.begin(), vector.end(), values.begin()));
+  test_invariants(vector);
+}
+
+TEST(VectorConstructor, EmptyInitializerList)
+{
+  const std::initializer_list<VectorT::value_type> values;
+  const VectorT vector(values);
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
+}
+
+TEST(VectorConstructor, InitializerList)
+{
+  const auto values = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+  const VectorT vector(values);
+  EXPECT_EQ(vector.size(), values.size());
+  EXPECT_TRUE(std::equal(vector.begin(), vector.end(), values.begin()));
+  test_invariants(vector);
+}
+
+TEST(VectorAssignmentOperator, CopyEmpty)
+{
+  const VectorT src;
+  VectorT vector;
+  vector = src;
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
+}
+
+TEST(VectorAssignmentOperator, Copy)
+{
+  const VectorT src{ 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+  VectorT vector;
+  vector = src;
+  EXPECT_EQ(vector, src);
+  test_invariants(vector);
+}
+
+TEST(VectorAssignmentOperator, MoveEmpty)
+{
+  VectorT vector;
+  vector = VectorT{};
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
+}
+
+TEST(VectorAssignmentOperator, Move)
+{
+  VectorT src{ 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+  const VectorT expected(src);
+  VectorT vector;
+  vector = std::move(src);
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorAssignmentOperator, EmptyInitializerList)
+{
+  const std::initializer_list<int> values;
+  VectorT vector;
+  vector = values;
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
+}
+
+TEST(VectorAssignmentOperator, InitializerList)
+{
+  const auto values = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+  const VectorT expected(values);
+  VectorT vector;
+  vector = values;
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+// TODO: Refactor below
 
 class VectorTest : public ::testing::Test
 {
@@ -31,91 +225,6 @@ protected:
   VectorT empty;
   VectorT copy;
 };
-
-TEST(VectorConstructor, Default)
-{
-  VectorT empty;
-  test_invariants(empty);
-}
-
-TEST(VectorConstructor, Allocator)
-{
-  std::allocator<VectorT::value_type> alloc;
-  VectorT vector(alloc);
-  test_invariants(vector);
-}
-
-TEST(VectorConstructor, Size)
-{
-  size_t size = 100;
-  VectorT::value_type val{};
-  VectorT vector(size);
-  test_invariants(vector);
-  EXPECT_TRUE(std::all_of(vector.cbegin(), vector.cend(),
-      [&val](const auto& x) { return x == val; }));
-}
-
-TEST(VectorConstructor, SizeAndValue)
-{
-  size_t size = 100;
-  VectorT::value_type val(7);
-  VectorT vector(size, val);
-  test_invariants(vector);
-  EXPECT_TRUE(std::all_of(vector.cbegin(), vector.cend(),
-      [&val](const auto& x) { return x == val; }));
-}
-
-TEST(VectorConstructor, Iterators)
-{
-  auto values = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-  VectorT vector(values.begin(), values.end());
-  test_invariants(vector);
-  EXPECT_TRUE(std::equal(vector.begin(), vector.end(), values.begin()));
-}
-
-TEST(VectorConstructor, InitializerList)
-{
-  std::initializer_list<VectorT::value_type> values = { 1, 2, 3, 4, 5, 6, 7 };
-  VectorT vector(values);
-  test_invariants(vector);
-  EXPECT_TRUE(std::equal(vector.begin(), vector.end(), values.begin()));
-}
-
-TEST(VectorConstructor, Copy)
-{
-  VectorT vector(100, 7);
-  VectorT copy(vector);
-  test_invariants(copy);
-  EXPECT_EQ(vector, copy);
-}
-
-TEST(VectorConstructor, Move)
-{
-  VectorT vector(100, 7);
-  VectorT copy(vector);
-  VectorT moved(std::move(vector));
-  test_invariants(moved);
-  EXPECT_EQ(copy, moved);
-}
-
-TEST(VectorAssignmentOperator, Move)
-{
-  VectorT vector(100, 7);
-  VectorT copy(vector);
-  VectorT moved;
-  moved = std::move(vector);
-  test_invariants(moved);
-  EXPECT_EQ(copy, moved);
-}
-
-TEST(VectorAssignmentOperator, Copy)
-{
-  VectorT vector(100, 7);
-  VectorT copy;
-  copy = vector;
-  test_invariants(copy);
-  EXPECT_EQ(copy, copy);
-}
 
 TEST_F(VectorTest, ReverseIterators)
 {
