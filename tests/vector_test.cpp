@@ -209,6 +209,349 @@ TEST(VectorAssignmentOperator, InitializerList)
   test_invariants(vector);
 }
 
+TEST(VectorResize, ZeroSize)
+{
+  VectorT vector;
+  vector.resize(0);
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
+}
+
+TEST(VectorResize, ReduceSize)
+{
+  const VectorT expected{ 1, 2, 3 };
+  VectorT vector{ 1, 2, 3, 4, 5 };
+  vector.resize(3);
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorResize, IncreaseSizeWithDefaultValue)
+{
+  const VectorT expected{ 1, 2, 3, 0, 0 };
+  VectorT vector{ 1, 2, 3 };
+  vector.resize(5);
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorResize, IncreaseSizeWithCustomValue)
+{
+  const VectorT expected{ 1, 2, 3, 7, 7 };
+  VectorT vector{ 1, 2, 3 };
+  vector.resize(5, 7);
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorResize, SameSize)
+{
+  VectorT vector{ 1, 2, 3 };
+  const VectorT expected(vector);
+  vector.resize(3);
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorReserve, IncreaseCapacityEmpty)
+{
+  VectorT vector;
+  vector.reserve(100);
+  EXPECT_GE(vector.capacity(), 100);
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
+}
+
+TEST(VectorReserve, IncreaseCapacity)
+{
+  const VectorT expected{ 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+  VectorT vector(expected);
+  vector.reserve(100);
+  EXPECT_GE(vector.capacity(), 100);
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorReserve, DecreaseCapacity)
+{
+  VectorT vector;
+  vector.reserve(100);
+  const auto capacity = vector.capacity();
+  vector.reserve(5);
+  EXPECT_EQ(vector.capacity(), capacity);
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
+}
+
+TEST(VectorReserve, ZeroCapacity)
+{
+  VectorT vector;
+  vector.reserve(0);
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
+}
+
+TEST(VectorShrinkToFit, Empty)
+{
+  VectorT vector;
+  vector.shrink_to_fit();
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
+}
+
+TEST(VectorShrinkToFit, EmptyReserved)
+{
+  VectorT vector;
+  vector.reserve(100);
+  vector.shrink_to_fit();
+  EXPECT_TRUE(vector.empty());
+  EXPECT_EQ(vector.capacity(), 0);
+  test_invariants(vector);
+}
+
+TEST(VectorShrinkToFit, AlreadyFitted)
+{
+  const VectorT expected{ 1, 2, 3 };
+  VectorT vector(expected);
+  vector.shrink_to_fit();
+  EXPECT_EQ(vector.capacity(), vector.size());
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorShrinkToFit, Unfitted)
+{
+  const VectorT expected{ 1, 2, 3, 4, 5 };
+  VectorT vector(expected.begin(), expected.end());
+  vector.shrink_to_fit();
+  EXPECT_EQ(vector.capacity(), vector.size());
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorElementAccess, ConstSquareBrackets)
+{
+  const VectorT vector{ 10, 20, 30 };
+  EXPECT_EQ(vector[0], 10);
+  EXPECT_EQ(vector[1], 20);
+  EXPECT_EQ(vector[2], 30);
+  test_invariants(vector);
+}
+
+TEST(VectorElementAccess, NonConstSquareBrackets)
+{
+  const VectorT expected{ 7, 20, 30 };
+  VectorT vector{ 10, 20, 30 };
+  vector[0] = 7;
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorElementAccess, ConstAtValid)
+{
+  const VectorT vector{ 10, 20, 30 };
+  EXPECT_EQ(vector.at(0), 10);
+  EXPECT_EQ(vector.at(1), 20);
+  EXPECT_EQ(vector.at(2), 30);
+  test_invariants(vector);
+}
+
+TEST(VectorElementAccess, ConstAtOutOfRange)
+{
+  const VectorT vector{ 10, 20, 30 };
+  EXPECT_THROW(std::ignore = vector.at(3), std::out_of_range);
+  test_invariants(vector);
+}
+
+TEST(VectorElementAccess, ConstAtEmpty)
+{
+  const VectorT vector;
+  EXPECT_THROW(std::ignore = vector.at(0), std::out_of_range);
+  test_invariants(vector);
+}
+
+TEST(VectorElementAccess, NonConstAtValid)
+{
+  const VectorT expected{ 7, 20, 30 };
+  VectorT vector{ 10, 20, 30 };
+  vector.at(0) = 7;
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorElementAccess, NonConstAtOutOfRange)
+{
+  VectorT vector{ 10, 20, 30 };
+  EXPECT_THROW(std::ignore = vector.at(3), std::out_of_range);
+  test_invariants(vector);
+}
+
+TEST(VectorElementAccess, NonConstFront)
+{
+  const VectorT expected{ 10, 20, 30 };
+  VectorT vector{ 42, 20, 30 };
+  vector.front() = 10;
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorElementAccess, ConstFront)
+{
+  const VectorT vector{ 42, 20, 30 };
+  EXPECT_EQ(vector.front(), 42);
+  EXPECT_EQ(&vector.front(), &*vector.begin());
+  test_invariants(vector);
+}
+
+TEST(VectorElementAccess, NonConstBack)
+{
+  const VectorT expected{ 10, 20, 30 };
+  VectorT vector{ 10, 20, 1 };
+  vector.back() = 30;
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorElementAccess, ConstBack)
+{
+  const VectorT vector{ 10, 20, 1 };
+  EXPECT_EQ(vector.back(), 1);
+  EXPECT_EQ(&vector.back(), &*(vector.end() - 1));
+  test_invariants(vector);
+}
+
+TEST(VectorElementAccess, EmptyData)
+{
+  const VectorT vector;
+  EXPECT_EQ(vector.data(), nullptr);
+  test_invariants(vector);
+}
+
+TEST(VectorElementAccess, EmptyReservedData)
+{
+  VectorT vector;
+  vector.reserve(10);
+  EXPECT_NE(vector.data(), nullptr);
+  test_invariants(vector);
+}
+
+TEST(VectorElementAccess, NonConstData)
+{
+  const VectorT expected{ 10, 20, 30 };
+  VectorT vector{ 42, 20, 30 };
+  vector.data()[0] = 10;
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(vector.data(), &*vector.begin());
+  test_invariants(vector);
+}
+
+TEST(VectorAssign, ZeroSizeAndValue)
+{
+  VectorT vector{ 1, 2, 3 };
+  vector.assign(0, 42);
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
+}
+
+TEST(VectorAssign, SizeAndValue)
+{
+  const VectorT expected(5, 10);
+  VectorT vector;
+  vector.assign(5, 10);
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorAssign, IteratorsEmptyRange)
+{
+  const std::initializer_list<VectorT::value_type> values;
+  VectorT vector{ 1, 2, 3 };
+  vector.assign(values.begin(), values.end());
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
+}
+
+TEST(VectorAssign, IteratorsNonEmptyRange)
+{
+  const VectorT expected{ 4, 5, 6, 7, 8, 9 };
+  VectorT vector{ 1, 2, 3 };
+  vector.assign(expected.begin(), expected.end());
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorAssign, InitializerListEmpty)
+{
+  const std::initializer_list<VectorT::value_type> values;
+  VectorT vector{ 1, 2, 3 };
+  vector.assign(values);
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
+}
+
+TEST(VectorAssign, InitializerListNonEmpty)
+{
+  const auto values = { 4, 5, 6, 7, 8, 9 };
+  const VectorT expected(values);
+  VectorT vector{ 1, 2, 3 };
+  vector.assign(values);
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorPushBack, CopyEmpty)
+{
+  const VectorT expected{ 10 };
+  VectorT vector;
+  vector.push_back(expected.front());
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorPushBack, CopyNonEmpty)
+{
+  const VectorT expected{ 10, 20, 30 };
+  VectorT vector{ 10, 20 };
+  vector.push_back(expected.back());
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorPushBack, MoveEmpty)
+{
+  const VectorT expected{ 10 };
+  VectorT vector;
+  vector.push_back(10);
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorPushBack, MoveNonEmpty)
+{
+  const VectorT expected{ 10, 20, 30 };
+  VectorT vector{ 10, 20 };
+  vector.push_back(30);
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorPopBack, SingleElement)
+{
+  VectorT vector{ 7 };
+  vector.pop_back();
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
+}
+
+TEST(VectorPopBack, MultipleElements)
+{
+  const VectorT expected{ 10, 20, 30 };
+  VectorT vector{ 10, 20, 30, 7 };
+  vector.pop_back();
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
 // TODO: Refactor below
 
 class VectorTest : public ::testing::Test
