@@ -169,8 +169,10 @@ namespace ftl {
   vector<T, A>::vector(const vector& rhs, const allocator_type& alloc) :
     vector(alloc)
   {
-    allocate(rhs.size());
-    construct_at_end(rhs.begin_, rhs.end_);
+    if (!rhs.empty()) {
+      allocate(rhs.size());
+      construct_at_end(rhs.begin_, rhs.end_);
+    }
   }
 
   template <typename T, typename A>
@@ -202,8 +204,10 @@ namespace ftl {
       const allocator_type& alloc) :
     vector(alloc)
   {
-    allocate(size);
-    construct_at_end(size, value);
+    if (size != 0) {
+      allocate(size);
+      construct_at_end(size, value);
+    }
   }
 
   template <typename T, typename A>
@@ -222,8 +226,10 @@ namespace ftl {
       const allocator_type& alloc) :
     vector(alloc)
   {
-    allocate(list.size());
-    construct_at_end(list.begin(), list.end());
+    if (list.size() != 0) {
+      allocate(list.size());
+      construct_at_end(list.begin(), list.end());
+    }
   }
 
   template <typename T, typename A>
@@ -378,6 +384,10 @@ namespace ftl {
   void vector<T, A>::shrink_to_fit()
   {
     if (end_ == end_cap_) {
+      return;
+    }
+    if (empty()) {
+      deallocate();
       return;
     }
     reallocate_storage(size());
