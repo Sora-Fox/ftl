@@ -552,318 +552,439 @@ TEST(VectorPopBack, MultipleElements)
   test_invariants(vector);
 }
 
-// TODO: Refactor below
-
-class VectorTest : public ::testing::Test
+TEST(VectorInsert, SingleToEmpty)
 {
-protected:
-  void SetUp() override
-  {
-    filled = VectorT(100);
-    empty = VectorT();
-    std::iota(filled.begin(), filled.end(), 0);
-    copy = filled;
-  }
-  VectorT filled;
-  VectorT empty;
-  VectorT copy;
-};
-
-TEST_F(VectorTest, ReverseIterators)
-{
-  auto rbeg = filled.rbegin();
-  auto rend = filled.rend();
-  EXPECT_EQ(*rbeg, filled.back());
-  EXPECT_EQ(*(rend - 1), filled.front());
+  const VectorT expected{ 1 };
+  VectorT vector;
+  const auto it = vector.insert(vector.end(), 1);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin());
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, IteratorInvalidationOnReallocation)
+TEST(VectorInsert, SingleCopyAtBegin)
 {
-  auto it = filled.begin();
-  filled.reserve(filled.capacity() * 2);
-  EXPECT_NE(it, filled.begin());
+  const VectorT expected{ 1, 2, 3, 4 };
+  VectorT vector{ 2, 3, 4 };
+  const auto it = vector.insert(vector.begin(), 1);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin());
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, DataPointer)
+TEST(VectorInsert, SingleCopyAtMiddle)
 {
-  EXPECT_EQ(filled.data(), std::addressof(filled.front()));
-  EXPECT_EQ(empty.data(), nullptr);
+  const VectorT expected{ 1, 2, 3, 4 };
+  VectorT vector{ 1, 3, 4 };
+  const auto it = vector.insert(vector.begin() + 1, 2);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin() + 1);
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, OperatorBracketAccess)
+TEST(VectorInsert, SingleCopyAtEnd)
 {
-  auto value = 111;
-  auto index = filled.size() - 1;
-  filled[filled.size() - 1] = value;
-  EXPECT_EQ(filled[index], value);
-  const VectorT& const_filled = filled;
-  EXPECT_EQ(const_filled[index], value);
+  const VectorT expected{ 1, 2, 3, 4 };
+  VectorT vector{ 1, 2, 3 };
+  auto it = vector.insert(vector.end(), 4);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.end() - 1);
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, AtValidIndex)
+TEST(VectorInsert, SingleMove)
 {
-  auto value = 111;
-  auto index = filled.size() - 1;
-  filled.at(index) = value;
-  EXPECT_EQ(filled.at(index), value);
-  const VectorT& const_filled = filled;
-  EXPECT_EQ(const_filled.at(index), value);
+  const VectorT expected{ 1, 2, 3, 4 };
+  VectorT vector{ 1, 3, 4 };
+  const auto it = vector.insert(vector.begin() + 1, 2);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin() + 1);
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, AtOutOfRange)
+TEST(VectorInsert, MultipleCopiesToEmpty)
 {
-  EXPECT_THROW(filled.at(filled.size()), std::out_of_range);
-  EXPECT_THROW(empty.at(0), std::out_of_range);
+  const VectorT expected{ 1, 1 };
+  VectorT vector;
+  const auto it = vector.insert(vector.begin(), 2, 1);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin());
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, PushBack)
+TEST(VectorInsert, MultipleCopiesAtBegin)
 {
-  auto val = VectorT::value_type(77);
-  filled.push_back(val);
-  test_invariants(filled);
-  EXPECT_EQ(filled.back(), val);
-  EXPECT_TRUE(std::equal(copy.begin(), copy.end(), filled.begin()));
+  const VectorT expected{ 2, 2, 3, 4 };
+  VectorT vector{ 3, 4 };
+  const auto it = vector.insert(vector.begin(), 2, 2);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin());
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, PushBackEmpty)
+TEST(VectorInsert, MultipleCopiesAtMiddle)
 {
-  auto val = VectorT::value_type(77);
-  empty.push_back(val);
-  test_invariants(empty);
-  EXPECT_EQ(empty.back(), val);
-  EXPECT_EQ(empty.front(), val);
+  const VectorT expected{ 1, 2, 2, 3 };
+  VectorT vector{ 1, 3 };
+  const auto it = vector.insert(vector.begin() + 1, 2, 2);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin() + 1);
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, PopBack)
+TEST(VectorInsert, MultipleCopiesAtEnd)
 {
-  filled.pop_back();
-  test_invariants(filled);
+  const VectorT expected{ 1, 2, 3, 3 };
+  VectorT vector{ 1, 2 };
+  const auto it = vector.insert(vector.end(), 2, 3);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.end() - 2);
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, Reserve)
+TEST(VectorInsert, IteratorRangeToEmpty)
 {
-  auto newCapacity = filled.capacity() * 2;
-  filled.reserve(newCapacity);
-  test_invariants(filled);
-  EXPECT_GE(filled.capacity(), newCapacity);
-  EXPECT_EQ(filled, copy);
+  const VectorT expected{ 1, 2 };
+  const std::initializer_list<VectorT::value_type> values = { 1, 2 };
+  VectorT vector;
+  const auto it = vector.insert(vector.end(), values.begin(), values.end());
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin());
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, ResizeToZero)
+TEST(VectorInsert, IteratorRangeAtBegin)
 {
-  filled.resize(0);
-  test_invariants(filled);
+  const VectorT expected{ 1, 2, 3, 4 };
+  const std::initializer_list<VectorT::value_type> values = { 1, 2 };
+  VectorT vector{ 3, 4 };
+  const auto it = vector.insert(vector.begin(), values.begin(), values.end());
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin());
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, ResizeWithoutReallocation)
+TEST(VectorInsert, IteratorRangeAtMiddle)
 {
-  filled.reserve(filled.capacity() * 2);
-  auto newSize = filled.capacity() - 1;
-  filled.resize(newSize);
-  test_invariants(filled);
-  EXPECT_TRUE(std::equal(copy.begin(), copy.end(), filled.begin()));
+  const VectorT expected{ 1, 2, 3, 4 };
+  const std::initializer_list<VectorT::value_type> vals = { 2, 3 };
+  VectorT vector{ 1, 4 };
+  const auto it = vector.insert(vector.begin() + 1, vals.begin(), vals.end());
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin() + 1);
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, ResizeWithReallocation)
+TEST(VectorInsert, IteratorRangeAtEnd)
 {
-  auto newSize = filled.capacity() * 2;
-  filled.resize(newSize);
-  test_invariants(filled);
-  EXPECT_TRUE(std::equal(copy.begin(), copy.end(), filled.begin()));
+  const VectorT expected{ 1, 2, 3, 4 };
+  const std::initializer_list<VectorT::value_type> vals = { 3, 4 };
+  VectorT vector{ 1, 2 };
+  auto it = vector.insert(vector.end(), vals.begin(), vals.end());
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.end() - 2);
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, ShrinkToFit)
+TEST(VectorInsert, InitializerList)
 {
-  auto capacity = filled.capacity();
-  auto newCapacity = capacity * 2;
-  filled.reserve(newCapacity);
-  filled.shrink_to_fit();
-  test_invariants(filled);
-  EXPECT_EQ(filled, copy);
-  EXPECT_EQ(filled.capacity(), copy.size());
+  const VectorT expected{ 1, 2, 3, 4 };
+  const std::initializer_list<VectorT::value_type> vals = { 2, 3 };
+  VectorT vector{ 1, 4 };
+  const auto it = vector.insert(vector.begin() + 1, vals);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin() + 1);
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, SwapDifferent)
+TEST(VectorErase, SingleAtBegin)
 {
-  filled.swap(empty);
-  test_invariants(filled);
-  test_invariants(empty);
-  EXPECT_EQ(empty, copy);
+  const VectorT expected{ 2, 3 };
+  VectorT vector{ 1, 2, 3 };
+  const auto it = vector.erase(vector.begin());
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin());
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, SwapSame)
+TEST(VectorErase, SingleAtMiddle)
 {
-  filled.swap(filled);
-  test_invariants(filled);
-  EXPECT_EQ(filled, copy);
+  const VectorT expected{ 1, 3 };
+  VectorT vector{ 1, 2, 3 };
+  const auto it = vector.erase(vector.begin() + 1);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin() + 1);
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, ClearFilled)
+TEST(VectorErase, SingleAtEnd)
 {
-  filled.clear();
-  test_invariants(filled);
+  const VectorT expected{ 1, 2 };
+  VectorT vector{ 1, 2, 3 };
+  const auto it = vector.erase(vector.end() - 1);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.end());
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, ClearEmpty)
+TEST(VectorErase, EmptyRangeFromEmpty)
 {
-  empty.clear();
-  test_invariants(empty);
+  VectorT vector;
+  const auto it = vector.erase(vector.begin(), vector.begin());
+  EXPECT_TRUE(vector.empty());
+  EXPECT_EQ(it, vector.begin());
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, InsertValueWithoutReallocation)
+TEST(VectorErase, EmptyRange)
 {
-  filled.reserve(filled.capacity() + 1);
-  auto val = VectorT::value_type(18);
-  auto pos = filled.begin() + filled.size() / 2;
-  auto it = filled.insert(pos, val);
-  EXPECT_EQ(*it, val);
-  test_invariants(filled);
+  const VectorT expected{ 1, 2, 3, 4 };
+  VectorT vector(expected);
+  const auto it = vector.erase(vector.begin() + 1, vector.begin() + 1);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin() + 1);
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, InsertValueWithReallocation)
+TEST(VectorErase, RangeFromBegin)
 {
-  filled.shrink_to_fit();
-  auto val = VectorT::value_type(18);
-  auto pos = filled.begin() + filled.size() / 2;
-  auto it = filled.insert(pos, std::move(val));
-  EXPECT_EQ(*it, val);
-  test_invariants(filled);
+  const VectorT expected{ 3, 4 };
+  VectorT vector{ 1, 2, 3, 4 };
+  const auto it = vector.erase(vector.begin(), vector.end() - 2);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin());
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, InsertSeveralValues)
+TEST(VectorErase, RangeInMiddle)
 {
-  size_t new_vals_count = 3;
-  auto val = VectorT::value_type(18);
-  auto it = filled.insert(filled.cbegin(), new_vals_count, val);
-  ASSERT_EQ(filled.cbegin(), it);
-  ASSERT_TRUE(std::all_of(filled.cbegin(), filled.cbegin() + new_vals_count,
-      [&](auto e) { return e == val; }));
-  test_invariants(filled);
+  const VectorT expected{ 1, 4 };
+  VectorT vector{ 1, 2, 3, 4 };
+  const auto it = vector.erase(vector.begin() + 1, vector.end() - 1);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin() + 1);
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, InsertIterator)
+TEST(VectorErase, RangeToEnd)
 {
-  auto values = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-  size_t shift = 2;
-  auto pos = filled.cbegin() + shift;
-  auto it = filled.insert(pos, values.begin(), values.end());
-  ASSERT_EQ(std::distance(filled.begin(), it), shift);
-  pos = filled.cbegin() + shift;
-  ASSERT_TRUE(std::equal(pos, pos + values.size(), values.begin()));
-  test_invariants(filled);
+  const VectorT expected{ 1, 2 };
+  VectorT vector{ 1, 2, 3, 4 };
+  const auto it = vector.erase(vector.begin() + 2, vector.end());
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.end());
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, InsertInitializerList)
+TEST(VectorErase, FullRange)
 {
-  std::initializer_list<VectorT::value_type> values = { 1, 2, 3, 4, 5, 6 };
-  size_t shift = 2;
-  auto pos = filled.cbegin() + shift;
-  auto it = filled.insert(pos, values);
-  ASSERT_EQ(std::distance(filled.begin(), it), shift);
-  pos = filled.cbegin() + shift;
-  ASSERT_TRUE(std::equal(pos, pos + values.size(), values.begin()));
-  test_invariants(filled);
+  VectorT vector{ 1, 2, 3, 4 };
+  const auto it = vector.erase(vector.begin(), vector.end());
+  EXPECT_TRUE(vector.empty());
+  EXPECT_EQ(it, vector.end());
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, AssignValues)
+TEST(VectorSwap, NonEmptyWithNonEmpty)
 {
-  auto val = VectorT::value_type(18);
-  auto size = filled.size() * 2;
-  filled.assign(size, val);
-  test_invariants(filled);
-  EXPECT_TRUE(std::all_of(filled.cbegin(), filled.cend(),
-      [&val](const auto& x) { return x == val; }));
+  VectorT lhs{ 1, 2, 3 };
+  VectorT rhs{ 4, 5 };
+  const VectorT rhs_copy = rhs;
+  const VectorT lhs_copy = lhs;
+  lhs.swap(rhs);
+  EXPECT_EQ(lhs, rhs_copy);
+  EXPECT_EQ(rhs, lhs_copy);
+  test_invariants(lhs);
+  test_invariants(rhs);
 }
 
-TEST_F(VectorTest, AssignIterator)
+TEST(VectorSwap, EmptyWithNonEmpty)
 {
-  auto values = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-  filled.assign(values.begin(), values.end());
-  test_invariants(filled);
-  EXPECT_TRUE(std::equal(filled.begin(), filled.end(), values.begin()));
+  VectorT lhs;
+  VectorT rhs{ 4, 5 };
+  const VectorT rhs_copy = rhs;
+  lhs.swap(rhs);
+  EXPECT_EQ(lhs, rhs_copy);
+  EXPECT_TRUE(rhs.empty());
+  test_invariants(lhs);
+  test_invariants(rhs);
 }
 
-TEST_F(VectorTest, AssignInitializerList)
+TEST(VectorSwap, EmptyWithEmpty)
 {
-  std::initializer_list<VectorT::value_type> values = { 1, 2, 3, 4, 5, 6, 7 };
-  filled.assign(values);
-  test_invariants(filled);
-  EXPECT_TRUE(std::equal(filled.begin(), filled.end(), values.begin()));
+  VectorT lhs;
+  VectorT rhs;
+  lhs.swap(rhs);
+  EXPECT_TRUE(lhs.empty() && rhs.empty());
+  test_invariants(lhs);
+  test_invariants(rhs);
 }
 
-TEST_F(VectorTest, EmplaceWithoutReallocation)
+TEST(VectorClear, NonEmpty)
 {
-  filled.reserve(filled.capacity() + 1);
-  auto val = VectorT::value_type(18);
-  size_t shift = filled.size() / 2;
-  auto pos = filled.begin() + shift;
-  auto it = filled.emplace(pos, val);
-  EXPECT_EQ(*it, val);
-  test_invariants(filled);
-  auto filled_end = filled.begin() + shift;
-  auto copy_end = copy.begin() + shift;
-  EXPECT_TRUE(std::equal(filled.begin(), filled_end, copy.begin(), copy_end));
-  EXPECT_TRUE(std::equal(filled_end + 1, filled.end(), copy_end, copy.end()));
+  VectorT vector{ 1, 2, 3, 4 };
+  vector.clear();
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, EmplaceWithReallocation)
+TEST(VectorClear, Empty)
 {
-  filled.shrink_to_fit();
-  auto val = VectorT::value_type(18);
-  size_t shift = filled.size() / 2;
-  auto pos = filled.begin() + shift;
-  auto it = filled.emplace(pos, val);
-  EXPECT_EQ(*it, val);
-  test_invariants(filled);
-  auto filled_end = filled.begin() + shift;
-  auto copy_end = copy.begin() + shift;
-  EXPECT_TRUE(std::equal(filled.begin(), filled_end, copy.begin(), copy_end));
-  EXPECT_TRUE(std::equal(filled_end + 1, filled.end(), copy_end, copy.end()));
+  VectorT vector;
+  vector.clear();
+  EXPECT_TRUE(vector.empty());
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, EmplaceBack)
+TEST(VectorEmplace, Empty)
 {
-  auto val = VectorT::value_type(1212);
-  filled.emplace_back(val);
-  test_invariants(filled);
-  EXPECT_EQ(filled.back(), val);
+  const VectorT expected{ 1 };
+  VectorT vector;
+  const auto it = vector.emplace(vector.end(), 1);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin());
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, EraseOne)
+TEST(VectorEmplace, AtBegin)
 {
-  auto pos = filled.begin() + filled.size() / 2;
-  auto it = filled.erase(pos);
-  test_invariants(filled);
-  EXPECT_EQ(it, filled.begin() + copy.size() / 2);
+  const VectorT expected{ 1, 2, 3 };
+  VectorT vector{ 2, 3 };
+  const auto it = vector.emplace(vector.begin(), 1);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin());
+  test_invariants(vector);
 }
 
-TEST_F(VectorTest, EraseRange)
+TEST(VectorEmplace, AtMiddle)
 {
-  auto first = filled.begin() + filled.size() / 2;
-  auto last = first + 4;
-  auto count = last - first;
-  auto it = filled.erase(first, last);
-  test_invariants(filled);
-  EXPECT_EQ(it, filled.begin() + copy.size() / 2);
-  EXPECT_TRUE(std::equal(filled.begin(), it, copy.begin()));
-  EXPECT_TRUE(std::equal(it, filled.end(),
-      copy.begin() + (it - filled.begin()) + count));
+  const VectorT expected{ 1, 2, 3 };
+  VectorT vector{ 1, 3 };
+  const auto it = vector.emplace(vector.begin() + 1, 2);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin() + 1);
+  test_invariants(vector);
 }
 
-TEST(VectorComparison, Equality)
+TEST(VectorEmplace, AtEnd)
 {
-  VectorT vec1{ 1, 2, 3 };
-  VectorT vec2{ 1, 2, 3 };
-  VectorT vec3{ 1, 2, 3, 4 };
-  EXPECT_TRUE(vec1 == vec2);
-  EXPECT_TRUE(vec1 == vec1);
-  EXPECT_FALSE(vec1 == vec3);
+  const VectorT expected{ 1, 2, 3 };
+  VectorT vector{ 1, 2 };
+  const auto it = vector.emplace(vector.end(), 3);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.end() - 1);
+  test_invariants(vector);
 }
 
-TEST(VectorComparison, LexicographicalOrder)
+TEST(VectorEmplace, EmptyReserved)
 {
-  VectorT vec1{ 1, 2, 3 };
-  VectorT vec2{ 1, 2, 4 };
-  EXPECT_TRUE(vec1 < vec2);
-  EXPECT_FALSE(vec2 < vec1);
+  const VectorT expected{ 1 };
+  VectorT vector;
+  vector.reserve(10);
+  const auto it = vector.emplace(vector.end(), 1);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin());
+  test_invariants(vector);
+}
+
+TEST(VectorEmplace, Reserved)
+{
+  const VectorT expected{ 1, 2, 3, 4, 5 };
+  VectorT vector{ 1, 2, 4, 5 };
+  vector.reserve(10);
+  const auto it = vector.emplace(vector.begin() + 2, 3);
+  EXPECT_EQ(vector, expected);
+  EXPECT_EQ(it, vector.begin() + 2);
+  test_invariants(vector);
+}
+
+TEST(VectorEmplaceBack, Empty)
+{
+  const VectorT expected{ 17 };
+  VectorT vector;
+  vector.emplace_back(17);
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorEmplaceBack, NonReserved)
+{
+  const VectorT expected{ 1, 2, 3, 4 };
+  VectorT vector{ 1, 2, 3 };
+  vector.shrink_to_fit();
+  vector.emplace_back(4);
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorEmplaceBack, Reserved)
+{
+  const VectorT expected{ 1, 2, 3, 4 };
+  VectorT vector{ 1, 2, 3 };
+  vector.reserve(10);
+  vector.emplace_back(4);
+  EXPECT_EQ(vector, expected);
+  test_invariants(vector);
+}
+
+TEST(VectorGetAllocator, Default)
+{
+  VectorT vector;
+  std::allocator<int> default_alloc;
+  EXPECT_EQ(vector.get_allocator(), default_alloc);
+  test_invariants(vector);
+}
+
+void test_comparison(const VectorT& lhs, const VectorT& rhs)
+{
+  EXPECT_TRUE(lhs == lhs && rhs == rhs);
+  EXPECT_TRUE(lhs <= lhs && rhs <= rhs);
+  EXPECT_FALSE(lhs < lhs || rhs < rhs);
+  EXPECT_EQ(lhs == rhs, rhs == lhs);
+  EXPECT_EQ(lhs != rhs, rhs != lhs);
+  EXPECT_NE(lhs == rhs, lhs != rhs);
+  EXPECT_EQ((lhs < rhs), (rhs > lhs));
+  EXPECT_EQ((rhs < lhs), (lhs > rhs));
+  EXPECT_EQ(lhs <= rhs, !(rhs < lhs));
+  EXPECT_EQ(rhs <= lhs, !(lhs < rhs));
+}
+
+TEST(VectorComparison, EmptyVsEmpty)
+{
+  const VectorT lhs;
+  const VectorT rhs;
+  EXPECT_TRUE(lhs == rhs);
+  test_comparison(lhs, rhs);
+}
+
+TEST(VectorComparison, EmptyVsNonEmpty)
+{
+  const VectorT lhs;
+  const VectorT rhs{ 1 };
+  EXPECT_TRUE(lhs < rhs);
+  test_comparison(lhs, rhs);
+}
+
+TEST(VectorComparison, SameSizeAndValues)
+{
+  const VectorT lhs{ 1, 2, 3, 4, 5 };
+  const VectorT rhs{ 1, 2, 3, 4, 5 };
+  EXPECT_TRUE(lhs == rhs);
+  test_comparison(lhs, rhs);
+}
+
+TEST(VectorComparison, DifferentValues)
+{
+  const VectorT lhs{ 1, 2, 3, 4, 5 };
+  const VectorT rhs{ 1, 2, 3, 4, 6 };
+  EXPECT_TRUE(lhs < rhs);
+  test_comparison(lhs, rhs);
+}
+
+TEST(VectorComparison, DifferentSizes)
+{
+  const VectorT lhs{ 1, 2, 3, 4 };
+  const VectorT rhs{ 1, 2, 3, 4, 0 };
+  EXPECT_TRUE(lhs < rhs);
+  test_comparison(lhs, rhs);
 }
