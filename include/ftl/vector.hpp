@@ -50,7 +50,7 @@ namespace ftl {
         "Allocator for ftl::vector must be nothrow swappable");
 
     vector() noexcept = default;
-    vector(const vector&);
+    vector(const vector& rhs) : vector(rhs, rhs.alloc_) {}
     vector(vector&&) noexcept;
     vector(const vector&, const allocator_type&);
     vector(vector&&, const allocator_type&) noexcept;
@@ -143,7 +143,7 @@ namespace ftl {
     template <typename... Args>
     pointer emplace_unsafe(pointer, Args&&...);
 
-    void reallocate_storage(size_type);
+    void realloc_storage(size_type);
     void move_right_uninitialized(pointer);
     void move_right(pointer, pointer);
     FTL_NODISCARD size_type growth_capacity(size_type) const;
@@ -152,10 +152,10 @@ namespace ftl {
     void throw_length_error() const;
   };
 
-  template <typename T, typename A>
-  vector<T, A>::vector(const vector& rhs) : vector(rhs, rhs.alloc_)
-  {
-  }
+#if defined(FTL_CPP17_FEATURES)
+  template <class Iter>
+  vector(Iter, Iter) -> vector<typename std::iterator_traits<Iter>::value_type>;
+#endif
 
   template <typename T, typename A>
   vector<T, A>::vector(vector&& rhs) noexcept :
@@ -340,7 +340,7 @@ namespace ftl {
     using diff_limits = std::numeric_limits<difference_type>;
     const size_type alloc_max = AllocTraits::max_size(alloc_);
     constexpr size_type diff_max = static_cast<size_type>(diff_limits::max());
-    constexpr size_type vals_max = size_limits::max() / sizeof(T);
+    constexpr size_type vals_max = size_limits::max() / sizeof(value_type);
     return std::min({ alloc_max, diff_max, vals_max });
   }
 
@@ -364,7 +364,7 @@ namespace ftl {
       return;
     }
     if (capacity() < new_size) {
-      reallocate_storage(growth_capacity(new_size));
+      realloc_storage(growth_capacity(new_size));
     }
     construct_at_end(new_size - size(), value);
   }
@@ -378,7 +378,7 @@ namespace ftl {
     if (new_capacity > max_size()) {
       throw_length_error();
     }
-    reallocate_storage(new_capacity);
+    realloc_storage(new_capacity);
   }
 
   template <typename T, typename A>
@@ -391,7 +391,7 @@ namespace ftl {
       deallocate();
       return;
     }
-    reallocate_storage(size());
+    realloc_storage(size());
   }
 
   template <typename T, typename A>
@@ -538,7 +538,7 @@ namespace ftl {
     // TODO: Refactor ftl::vector::insert
     size_type shift = position - begin();
     if (end_ + size > end_cap_) {
-      reallocate_storage(growth_capacity(capacity() + size));
+      realloc_storage(growth_capacity(capacity() + size));
     }
     pointer pos = begin_ + shift;
     if (pos == end_) {
@@ -569,7 +569,7 @@ namespace ftl {
   {
     size_type shift = position - begin();
     if (size() + list.size() > capacity()) {
-      reallocate_storage(growth_capacity(size() + list.size()));
+      realloc_storage(growth_capacity(size() + list.size()));
     }
     return insert(const_iterator{ begin() + shift }, list.begin(), list.end());
   }
@@ -622,7 +622,7 @@ namespace ftl {
     }
     size_type shift = position - begin();
     if (end_ == end_cap_) {
-      reallocate_storage(growth_capacity(capacity() + 1));
+      realloc_storage(growth_capacity(capacity() + 1));
     }
     pointer pos = begin_ + shift;
     return iterator(emplace_unsafe(pos, std::forward<Args>(args)...));
@@ -633,7 +633,7 @@ namespace ftl {
   void vector<T, A>::emplace_back(Args&&... args)
   {
     if (end_ == end_cap_) {
-      reallocate_storage(growth_capacity(capacity() + 1));
+      realloc_storage(growth_capacity(capacity() + 1));
     }
     emplace_back_impl(std::forward<Args>(args)...);
   }
@@ -696,10 +696,9 @@ namespace ftl {
   }
 
   template <typename T, typename A>
-  void vector<T, A>::reallocate_storage(const size_type new_cap)
+  void vector<T, A>::realloc_storage(const size_type new_cap)
   {
-    assert(new_cap >= size() &&
-           "ftl::vector::reallocate_storage cannot reduce size");
+    assert(new_cap >= size() && "ftl::vector::realloc_storage reducing size");
     vector buffer(alloc_);
     buffer.allocate(new_cap);
     for (auto i = begin(), e = end(); i != e; ++i) {
@@ -744,13 +743,13 @@ namespace ftl {
 
   template <typename T, typename A>
   typename vector<T, A>::size_type
-  vector<T, A>::growth_capacity(size_type new_capacity) const
+  vector<T, A>::growth_capacity(const size_type new_capacity) const
   {
-    size_type max_sz = max_size();
+    const size_type max_sz = max_size();
     if (new_capacity > max_sz) {
       throw_length_error();
     }
-    size_type cap = capacity();
+    const size_type cap = capacity();
     if (cap >= max_sz / 2) {
       return max_sz;
     }
@@ -781,7 +780,7 @@ namespace ftl {
   operator==(const vector<T, A>& lhs, const vector<T, A>& rhs)
   {
     const bool is_same_size = lhs.size() == rhs.size();
-    return is_same_size && std::equal(lhs.cbegin(), lhs.cend(), rhs.cbegin());
+    return is_same_size && std::equal(lhs.begin(), lhs.end(), rhs.begin());
   }
 
 #if !defined(FTL_CPP20_FEATURES)
@@ -794,10 +793,10 @@ namespace ftl {
   }
 
   template <typename T, typename A>
-  FTL_NODISCARD bool operator<(const vector<T, A>& l, const vector<T, A>& r)
+  FTL_NODISCARD bool operator<(const vector<T, A>& lhs, const vector<T, A>& rhs)
   {
-    return std::lexicographical_compare(l.cbegin(), l.cend(), r.cbegin(),
-        r.cend());
+    return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(),
+        rhs.end());
   }
 
   template <typename T, typename A>
@@ -825,8 +824,8 @@ namespace ftl {
   FTL_NODISCARD auto
   operator<=>(const vector<T, A>& lhs, const vector<T, A>& rhs)
   {
-    return std::lexicographical_compare_three_way(lhs.cbegin(), lhs.cend(),
-        rhs.cbegin(), rhs.cend());
+    return std::lexicographical_compare_three_way(lhs.begin(), lhs.end(),
+        rhs.begin(), rhs.end());
   }
 #endif
 }
