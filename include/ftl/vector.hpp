@@ -12,7 +12,6 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
-#include "internal/exception_guard.hpp"
 #include "internal/type_traits.hpp"
 #include "internal/wrap_iterator.hpp"
 
@@ -139,6 +138,8 @@ namespace ftl {
     void construct_at_end(size_type, Args&&...);
     void destroy_at_end(pointer) noexcept;
 
+    template <typename... Args>
+    void emplace_back_impl(Args&&...);
     template <typename... Args>
     pointer emplace_unsafe(pointer, Args&&...);
 
@@ -634,8 +635,7 @@ namespace ftl {
     if (end_ == end_cap_) {
       reallocate_storage(growth_capacity(capacity() + 1));
     }
-    AllocTraits::construct(alloc_, end_, std::forward<Args>(args)...);
-    ++end_;
+    emplace_back_impl(std::forward<Args>(args)...);
   }
 
   template <typename T, typename A>
@@ -696,30 +696,25 @@ namespace ftl {
   }
 
   template <typename T, typename A>
-  void vector<T, A>::reallocate_storage(size_type new_capacity)
+  void vector<T, A>::reallocate_storage(const size_type new_cap)
   {
-    // TODO: too much responsibility: should be shrink storage and expand?
-    pointer new_begin = AllocTraits::allocate(alloc_, new_capacity);
-    pointer new_end = new_begin;
-    pointer new_end_cap = new_begin + new_capacity;
-    auto deleter = [&]() {
-      for (; new_end != new_begin; --new_end) {
-        AllocTraits::destroy(alloc_, new_end);
-      }
-      AllocTraits::deallocate(alloc_, new_begin, new_capacity);
-    };
-
-    detail::exception_guard<decltype(deleter)> guard(deleter);
-    for (pointer i = begin_, end = new_begin + std::min(new_capacity, size());
-        new_end != end; ++new_end, ++i) {
-      AllocTraits::construct(alloc_, new_end, std::move_if_noexcept(*i));
+    assert(new_cap >= size() &&
+           "ftl::vector::reallocate_storage cannot reduce size");
+    vector buffer(alloc_);
+    buffer.allocate(new_cap);
+    for (auto i = begin(), e = end(); i != e; ++i) {
+      buffer.emplace_back_impl(std::move_if_noexcept(*i));
     }
-    guard.complete();
-    deallocate();
+    swap(buffer);
+  }
 
-    begin_ = new_begin;
-    end_ = new_end;
-    end_cap_ = new_end_cap;
+  template <typename T, typename A>
+  template <typename... Args>
+  void vector<T, A>::emplace_back_impl(Args&&... args)
+  {
+    assert(end_ != end_cap_ && "ftl::vector::emplace_back_impl filled storage");
+    AllocTraits::construct(alloc_, end_, std::forward<Args>(args)...);
+    ++end_;
   }
 
   template <typename T, typename A>
