@@ -821,7 +821,6 @@ namespace ftl {
   }
 
 #else
-
   template <typename T, typename A>
   FTL_NODISCARD auto
   operator<=>(const vector<T, A>& lhs, const vector<T, A>& rhs)
@@ -829,23 +828,7 @@ namespace ftl {
     return std::lexicographical_compare_three_way(lhs.cbegin(), lhs.cend(),
         rhs.cbegin(), rhs.cend());
   }
-
 #endif
-}
-
-namespace std {
-  template <typename T, typename A>
-  struct hash<ftl::vector<T, A>>
-  {
-    size_t operator()(const ftl::vector<T, A>& vector) const
-    {
-      size_t seed = vector.size();
-      for (const auto& elem : vector) {
-        seed ^= hash<T>{}(elem) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-      }
-      return seed;
-    }
-  };
 }
 
 #endif
