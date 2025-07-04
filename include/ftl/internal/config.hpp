@@ -31,4 +31,10 @@
 #  define FTL_NO_UNIQUE_ADDRESS [[no_unique_address]]
 #endif
 
+#if defined(FTL_CPP17_FEATURES)
+#  define FTL_NODISCARD [[nodiscard]]
+#else
+#  define FTL_NODISCARD
+#endif
+
 #endif

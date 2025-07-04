@@ -313,7 +313,9 @@ TEST(VectorShrinkToFit, AlreadyFitted)
 {
   const VectorT expected{ 1, 2, 3 };
   VectorT vector(expected);
+  VectorT::const_pointer const old_data = vector.data();
   vector.shrink_to_fit();
+  EXPECT_EQ(vector.data(), old_data);
   EXPECT_EQ(vector.capacity(), vector.size());
   EXPECT_EQ(vector, expected);
   test_invariants(vector);
