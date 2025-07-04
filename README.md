@@ -40,10 +40,10 @@ target_link_libraries(
 )
 ```
 
-3. In your C++ code, include the core header to access the library's functionality:
+3. In your C++ code, include ftl headers to access the library's functionality:
 
 ```cpp
-#include <ftl/core.hpp>
+#include <ftl/vector.hpp>
 ```
 
 ---
