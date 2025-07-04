@@ -1,8 +1,14 @@
-build
+build*
 CMakeUserPresets.json
 
 .cache
+.ccls-cache
+
 *.tmp
+\#*\#
+.\#*
+*~
 
 *.sh
+
 
