@@ -66,35 +66,35 @@ namespace ftl {
     vector& operator=(vector&&) noexcept;
     vector& operator=(std::initializer_list<value_type>);
 
-    iterator begin() noexcept;
-    iterator end() noexcept;
-    const_iterator begin() const noexcept;
-    const_iterator end() const noexcept;
-    reverse_iterator rbegin() noexcept;
-    reverse_iterator rend() noexcept;
-    const_iterator cbegin() const noexcept;
-    const_iterator cend() const noexcept;
-    const_reverse_iterator crbegin() const noexcept;
-    const_reverse_iterator crend() const noexcept;
+    FTL_NODISCARD iterator begin() noexcept;
+    FTL_NODISCARD iterator end() noexcept;
+    FTL_NODISCARD const_iterator begin() const noexcept;
+    FTL_NODISCARD const_iterator end() const noexcept;
+    FTL_NODISCARD reverse_iterator rbegin() noexcept;
+    FTL_NODISCARD reverse_iterator rend() noexcept;
+    FTL_NODISCARD const_iterator cbegin() const noexcept;
+    FTL_NODISCARD const_iterator cend() const noexcept;
+    FTL_NODISCARD const_reverse_iterator crbegin() const noexcept;
+    FTL_NODISCARD const_reverse_iterator crend() const noexcept;
 
-    size_type size() const noexcept;
-    size_type max_size() const noexcept;
+    FTL_NODISCARD size_type size() const noexcept;
+    FTL_NODISCARD size_type max_size() const noexcept;
+    FTL_NODISCARD size_type capacity() const noexcept;
+    FTL_NODISCARD bool empty() const noexcept;
     void resize(size_type, const_reference = {});
-    size_type capacity() const noexcept;
-    bool empty() const noexcept;
     void reserve(size_type);
     void shrink_to_fit();
 
-    reference operator[](size_type) noexcept;
-    const_reference operator[](size_type) const noexcept;
-    reference at(size_type);
-    const_reference at(size_type) const;
-    reference front() noexcept;
-    const_reference front() const noexcept;
-    reference back() noexcept;
-    const_reference back() const noexcept;
-    pointer data() noexcept;
-    const_pointer data() const noexcept;
+    FTL_NODISCARD reference operator[](size_type) noexcept;
+    FTL_NODISCARD const_reference operator[](size_type) const noexcept;
+    FTL_NODISCARD reference at(size_type);
+    FTL_NODISCARD const_reference at(size_type) const;
+    FTL_NODISCARD reference front() noexcept;
+    FTL_NODISCARD const_reference front() const noexcept;
+    FTL_NODISCARD reference back() noexcept;
+    FTL_NODISCARD const_reference back() const noexcept;
+    FTL_NODISCARD pointer data() noexcept;
+    FTL_NODISCARD const_pointer data() const noexcept;
 
     void assign(size_type, const_reference);
     template <typename InputIt, detail::enable_if_input_iterator<InputIt> = 0>
@@ -121,7 +121,7 @@ namespace ftl {
     template <typename... Args>
     void emplace_back(Args&&...);
 
-    allocator_type get_allocator() const noexcept;
+    FTL_NODISCARD allocator_type get_allocator() const noexcept;
 
   private:
     pointer begin_ = nullptr;
@@ -146,7 +146,7 @@ namespace ftl {
     void reallocate_storage(size_type);
     void move_right_uninitialized(pointer);
     void move_right(pointer, pointer);
-    size_type growth_capacity(size_type) const;
+    FTL_NODISCARD size_type growth_capacity(size_type) const;
 
     void throw_out_of_range() const;
     void throw_length_error() const;
@@ -345,6 +345,18 @@ namespace ftl {
   }
 
   template <typename T, typename A>
+  typename vector<T, A>::size_type vector<T, A>::capacity() const noexcept
+  {
+    return end_cap_ - begin_;
+  }
+
+  template <typename T, typename A>
+  bool vector<T, A>::empty() const noexcept
+  {
+    return begin_ == end_;
+  }
+
+  template <typename T, typename A>
   void vector<T, A>::resize(const size_type new_size, const_reference value)
   {
     if (size() >= new_size) {
@@ -355,18 +367,6 @@ namespace ftl {
       reallocate_storage(growth_capacity(new_size));
     }
     construct_at_end(new_size - size(), value);
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::size_type vector<T, A>::capacity() const noexcept
-  {
-    return end_cap_ - begin_;
-  }
-
-  template <typename T, typename A>
-  bool vector<T, A>::empty() const noexcept
-  {
-    return begin_ == end_;
   }
 
   template <typename T, typename A>
@@ -777,7 +777,8 @@ namespace ftl {
   }
 
   template <typename T, typename A>
-  bool operator==(const vector<T, A>& lhs, const vector<T, A>& rhs)
+  FTL_NODISCARD bool
+  operator==(const vector<T, A>& lhs, const vector<T, A>& rhs)
   {
     const bool is_same_size = lhs.size() == rhs.size();
     return is_same_size && std::equal(lhs.cbegin(), lhs.cend(), rhs.cbegin());
@@ -786,32 +787,35 @@ namespace ftl {
 #if !defined(FTL_CPP20_FEATURES)
 
   template <typename T, typename A>
-  bool operator!=(const vector<T, A>& lhs, const vector<T, A>& rhs)
+  FTL_NODISCARD bool
+  operator!=(const vector<T, A>& lhs, const vector<T, A>& rhs)
   {
     return !(lhs == rhs);
   }
 
   template <typename T, typename A>
-  bool operator<(const vector<T, A>& l, const vector<T, A>& r)
+  FTL_NODISCARD bool operator<(const vector<T, A>& l, const vector<T, A>& r)
   {
     return std::lexicographical_compare(l.cbegin(), l.cend(), r.cbegin(),
         r.cend());
   }
 
   template <typename T, typename A>
-  bool operator>(const vector<T, A>& lhs, const vector<T, A>& rhs)
+  FTL_NODISCARD bool operator>(const vector<T, A>& lhs, const vector<T, A>& rhs)
   {
     return rhs < lhs;
   }
 
   template <typename T, typename A>
-  bool operator<=(const vector<T, A>& lhs, const vector<T, A>& rhs)
+  FTL_NODISCARD bool
+  operator<=(const vector<T, A>& lhs, const vector<T, A>& rhs)
   {
     return !(lhs > rhs);
   }
 
   template <typename T, typename A>
-  bool operator>=(const vector<T, A>& lhs, const vector<T, A>& rhs)
+  FTL_NODISCARD bool
+  operator>=(const vector<T, A>& lhs, const vector<T, A>& rhs)
   {
     return !(lhs < rhs);
   }
@@ -819,7 +823,8 @@ namespace ftl {
 #else
 
   template <typename T, typename A>
-  auto operator<=>(const vector<T, A>& lhs, const vector<T, A>& rhs)
+  FTL_NODISCARD auto
+  operator<=>(const vector<T, A>& lhs, const vector<T, A>& rhs)
   {
     return std::lexicographical_compare_three_way(lhs.cbegin(), lhs.cend(),
         rhs.cbegin(), rhs.cend());
