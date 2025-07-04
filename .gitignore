@@ -1,5 +1,6 @@
 build*
 CMakeUserPresets.json
+compile_commands.json
 
 .cache
 .ccls-cache
@@ -10,5 +11,4 @@ CMakeUserPresets.json
 *~
 
 *.sh
-
 
