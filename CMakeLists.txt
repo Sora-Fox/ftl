@@ -8,10 +8,11 @@ target_include_directories(
 )
 
 option(FTL_ENABLE_TESTS "Enable building tests for FTL library" OFF)
+option(FTL_DOWNLOAD_GTEST "Download GTest using FetchContent" OFF)
 
 if (FTL_ENABLE_TESTS)
     enable_testing()
-    include(cmake/FetchGoogleTest.cmake)
+    include(cmake/include_gtest.cmake)
     add_subdirectory(tests)
 endif()
 

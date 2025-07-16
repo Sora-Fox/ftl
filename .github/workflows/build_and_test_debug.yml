@@ -6,13 +6,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Ninja
-        uses: seanmiddleditch/gha-setup-ninja@v5
-      - name: Set up Clang
-        uses: egor-tensin/setup-clang@v1
-        with:
-          version: latest
-          platform: x64
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang clang-tidy libgtest-dev
+      - name: Set up Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v4
       - name: Build Project
         uses: threeal/cmake-action@v2
         with:
