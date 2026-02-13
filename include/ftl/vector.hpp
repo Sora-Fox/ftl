@@ -17,7 +17,7 @@
 
 namespace ftl {
   template <typename T, typename Allocator = std::allocator<T>>
-  class vector final
+  class vector
   {
   public:
     using value_type = T;
@@ -40,21 +40,16 @@ namespace ftl {
 
     static_assert(std::is_same_v<typename AllocTraits::value_type, value_type>,
         "Allocator::value_type for ftl::vector must be same as T");
-    static_assert(std::is_nothrow_default_constructible_v<allocator_type>,
-        "Allocator for ftl::vector must be nothrow default constructible");
-    static_assert(std::is_nothrow_copy_constructible_v<allocator_type>,
-        "Allocator for ftl::vector must be nothrow copy constructible");
-    static_assert(std::is_nothrow_move_constructible_v<allocator_type>,
-        "Allocator for ftl::vector must be nothrow move constructible");
-    static_assert(std::is_nothrow_swappable_v<allocator_type>,
-        "Allocator for ftl::vector must be nothrow swappable");
 
-    vector() noexcept = default;
-    vector(const vector& rhs) : vector(rhs, rhs.alloc_) {}
-    vector(vector&&) noexcept;
+    vector() noexcept(
+        std::is_nothrow_default_constructible_v<allocator_type>) = default;
+    vector(const vector&);
+    vector(vector&&) noexcept(
+        std::is_nothrow_move_constructible_v<allocator_type>);
     vector(const vector&, const allocator_type&);
-    vector(vector&&, const allocator_type&) noexcept;
-    explicit vector(const allocator_type&) noexcept;
+    vector(vector&&, const allocator_type&);
+    explicit vector(const allocator_type&) noexcept(
+        std::is_nothrow_copy_constructible_v<allocator_type>);
     explicit vector(size_type, const allocator_type& = {});
     vector(size_type, const_reference, const allocator_type& = {});
     template <typename InputIt, detail::enable_if_input_iterator<InputIt> = 0>
@@ -63,7 +58,9 @@ namespace ftl {
     ~vector();
 
     vector& operator=(const vector&);
-    vector& operator=(vector&&) noexcept;
+    vector& operator=(vector&&) noexcept(
+        AllocTraits::propagate_on_container_move_assignment::value ||
+        AllocTraits::is_always_equal::value);
     vector& operator=(std::initializer_list<value_type>);
 
     FTL_NODISCARD iterator begin() noexcept;
@@ -113,7 +110,9 @@ namespace ftl {
     iterator erase(const_iterator);
     iterator erase(const_iterator, const_iterator);
 
-    void swap(vector&) noexcept;
+    void
+    swap(vector&) noexcept(!AllocTraits::propagate_on_container_swap::value ||
+                           std::is_nothrow_swappable_v<allocator_type>);
     void clear() noexcept;
 
     template <typename... Args>
@@ -158,7 +157,18 @@ namespace ftl {
 #endif
 
   template <typename T, typename A>
-  vector<T, A>::vector(vector&& rhs) noexcept :
+  vector<T, A>::vector(const vector& rhs) :
+    vector(AllocTraits::select_on_container_copy_construction(rhs.alloc_))
+  {
+    if (!rhs.empty()) {
+      allocate(rhs.size());
+      construct_at_end(rhs.begin_, rhs.end_);
+    }
+  }
+
+  template <typename T, typename A>
+  vector<T, A>::vector(vector&& rhs) noexcept(
+      std::is_nothrow_move_constructible_v<allocator_type>) :
     begin_(std::exchange(rhs.begin_, nullptr)),
     end_(std::exchange(rhs.end_, nullptr)),
     end_cap_(std::exchange(rhs.end_cap_, nullptr)),
@@ -177,16 +187,26 @@ namespace ftl {
   }
 
   template <typename T, typename A>
-  vector<T, A>::vector(vector&& rhs, const allocator_type& alloc) noexcept :
-    begin_(std::exchange(rhs.begin_, nullptr)),
-    end_(std::exchange(rhs.end_, nullptr)),
-    end_cap_(std::exchange(rhs.end_cap_, nullptr)),
-    alloc_(alloc)
+  vector<T, A>::vector(vector&& rhs, const allocator_type& alloc) :
+    vector(alloc)
   {
+    if (AllocTraits::is_always_equal::value || rhs.alloc_ == alloc_) {
+      begin_ = std::exchange(rhs.begin_, nullptr);
+      end_ = std::exchange(rhs.end_, nullptr);
+      end_cap_ = std::exchange(rhs.end_cap_, nullptr);
+      return;
+    }
+    if (!rhs.empty()) {
+      using move_it = std::move_iterator<pointer>;
+      allocate(rhs.size());
+      construct_at_end(move_it(rhs.begin_), move_it(rhs.end_));
+      rhs.deallocate();
+    }
   }
 
   template <typename T, typename A>
-  vector<T, A>::vector(const allocator_type& alloc) noexcept :
+  vector<T, A>::vector(const allocator_type& alloc) noexcept(
+      std::is_nothrow_copy_constructible_v<allocator_type>) :
     begin_(nullptr),
     end_(nullptr),
     end_cap_(nullptr),
@@ -242,16 +262,50 @@ namespace ftl {
   template <typename T, typename A>
   vector<T, A>& vector<T, A>::operator=(const vector& rhs)
   {
+    if (this == &rhs) {
+      return *this;
+    }
     clear();
+    if constexpr (AllocTraits::propagate_on_container_copy_assignment::value) {
+      if (alloc_ != rhs.alloc_) {
+        deallocate();
+      }
+      alloc_ = rhs.alloc_;
+    }
     reserve(rhs.size());
     construct_at_end(rhs.begin(), rhs.end());
     return *this;
   }
 
   template <typename T, typename A>
-  vector<T, A>& vector<T, A>::operator=(vector&& rhs) noexcept
+  vector<T, A>& vector<T, A>::operator=(vector&& rhs) noexcept(
+      AllocTraits::propagate_on_container_move_assignment::value ||
+      AllocTraits::is_always_equal::value)
+
   {
-    vector(std::move(rhs)).swap(*this);
+    if (this == &rhs) {
+      return *this;
+    }
+    if constexpr (AllocTraits::propagate_on_container_move_assignment::value) {
+      deallocate();
+      alloc_ = std::move(rhs.alloc_);
+      begin_ = std::exchange(rhs.begin_, nullptr);
+      end_ = std::exchange(rhs.end_, nullptr);
+      end_cap_ = std::exchange(rhs.end_cap_, nullptr);
+      return *this;
+    }
+    if (rhs.alloc_ == alloc_) {
+      deallocate();
+      begin_ = std::exchange(rhs.begin_, nullptr);
+      end_ = std::exchange(rhs.end_, nullptr);
+      end_cap_ = std::exchange(rhs.end_cap_, nullptr);
+      return *this;
+    }
+    clear();
+    reserve(rhs.size());
+    using move_it = std::move_iterator<pointer>;
+    construct_at_end(move_it(rhs.begin_), move_it(rhs.end_));
+    rhs.clear();
     return *this;
   }
 
@@ -473,7 +527,7 @@ namespace ftl {
   void vector<T, A>::assign(const size_type size, const_reference value)
   {
     if (capacity() < size) {
-      vector(size, value).swap(*this);
+      vector(size, value, alloc_).swap(*this);
       return;
     }
     clear();
@@ -484,14 +538,14 @@ namespace ftl {
   template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
   void vector<T, A>::assign(const InputIt first, const InputIt last)
   {
-    vector(first, last).swap(*this);
+    vector(first, last, alloc_).swap(*this);
   }
 
   template <typename T, typename A>
   void vector<T, A>::assign(const std::initializer_list<value_type> list)
   {
     if (capacity() < list.size()) {
-      vector(list).swap(*this);
+      vector(list, alloc_).swap(*this);
       return;
     }
     clear();
@@ -596,13 +650,17 @@ namespace ftl {
   }
 
   template <typename T, typename A>
-  void vector<T, A>::swap(vector& rhs) noexcept
+  void vector<T, A>::swap(vector& rhs) noexcept(
+      !AllocTraits::propagate_on_container_swap::value ||
+      std::is_nothrow_swappable_v<allocator_type>)
   {
     using std::swap;
+    if constexpr (AllocTraits::propagate_on_container_swap::value) {
+      swap(alloc_, rhs.alloc_);
+    }
     swap(begin_, rhs.begin_);
     swap(end_, rhs.end_);
     swap(end_cap_, rhs.end_cap_);
-    swap(alloc_, rhs.alloc_);
   }
 
   template <typename T, typename A>
@@ -759,12 +817,14 @@ namespace ftl {
   template <typename T, typename A>
   void vector<T, A>::throw_out_of_range() const
   {
+    /* TODO: Add FTL_THROW macro and FTL_DISABLE_EXCEPTIONS */
     throw std::out_of_range("ftl::vector out_of_range");
   }
 
   template <typename T, typename A>
   void vector<T, A>::throw_length_error() const
   {
+    /* TODO: Add FTL_THROW macro and FTL_DISABLE_EXCEPTIONS */
     throw std::length_error("ftl::vector length_error");
   }
 
