@@ -37,4 +37,13 @@
 #  define FTL_NODISCARD
 #endif
 
+#if defined(FTL_DISABLE_EXCEPTIONS)
+#  define FTL_THROW(expr)                        \
+    do {                                         \
+      /* TODO: Handle exceptions in FTL_THROW */ \
+    } while (0)
+#else
+#  define FTL_THROW(expr) throw(expr)
+#endif
+
 #endif

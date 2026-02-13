@@ -12,6 +12,7 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include "internal/config.hpp"
 #include "internal/type_traits.hpp"
 #include "internal/wrap_iterator.hpp"
 
@@ -817,15 +818,13 @@ namespace ftl {
   template <typename T, typename A>
   void vector<T, A>::throw_out_of_range() const
   {
-    /* TODO: Add FTL_THROW macro and FTL_DISABLE_EXCEPTIONS */
-    throw std::out_of_range("ftl::vector out_of_range");
+    FTL_THROW(std::out_of_range("ftl::vector out_of_range"));
   }
 
   template <typename T, typename A>
   void vector<T, A>::throw_length_error() const
   {
-    /* TODO: Add FTL_THROW macro and FTL_DISABLE_EXCEPTIONS */
-    throw std::length_error("ftl::vector length_error");
+    FTL_THROW(std::length_error("ftl::vector length_error"));
   }
 
   template <typename T, typename A>
