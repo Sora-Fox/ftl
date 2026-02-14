@@ -238,8 +238,17 @@ namespace ftl {
       const allocator_type& alloc) :
     vector(alloc)
   {
-    for (; first != last; ++first) {
-      emplace_back(*first);
+    if constexpr (std::forward_iterator<It>) {
+      const auto count = std::distance(first, last);
+      if (!count) {
+        return;
+      }
+      allocate(count);
+      construct_at_end(first, last);
+    } else {
+      for (; first != last; ++first) {
+        emplace_back(*first);
+      }
     }
   }
 
