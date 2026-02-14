@@ -7,6 +7,8 @@ target_include_directories(
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 )
 
+target_compile_features(ftl INTERFACE cxx_std_20)
+
 option(FTL_ENABLE_TESTS "Enable building tests for FTL library" OFF)
 option(FTL_DOWNLOAD_GTEST "Download GTest using FetchContent" OFF)
 

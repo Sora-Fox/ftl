@@ -53,8 +53,8 @@ namespace ftl {
         std::is_nothrow_copy_constructible_v<allocator_type>);
     explicit vector(size_type, const allocator_type& = {});
     vector(size_type, const_reference, const allocator_type& = {});
-    template <typename InputIt, detail::enable_if_input_iterator<InputIt> = 0>
-    vector(InputIt, InputIt, const allocator_type& = {});
+    template <std::input_iterator It>
+    vector(It, It, const allocator_type& = {});
     vector(std::initializer_list<value_type>, const allocator_type& = {});
     ~vector();
 
@@ -95,8 +95,8 @@ namespace ftl {
     FTL_NODISCARD const_pointer data() const noexcept;
 
     void assign(size_type, const_reference);
-    template <typename InputIt, detail::enable_if_input_iterator<InputIt> = 0>
-    void assign(InputIt, InputIt);
+    template <std::input_iterator It>
+    void assign(It, It);
     void assign(std::initializer_list<value_type>);
     void push_back(const_reference);
     void push_back(value_type&&);
@@ -132,8 +132,8 @@ namespace ftl {
     void allocate(size_type);
     void deallocate() noexcept;
 
-    template <typename InputIt, detail::enable_if_input_iterator<InputIt> = 0>
-    void construct_at_end(InputIt, InputIt);
+    template <std::input_iterator It>
+    void construct_at_end(It, It);
     template <typename... Args>
     void construct_at_end(size_type, Args&&...);
     void destroy_at_end(pointer) noexcept;
@@ -152,10 +152,8 @@ namespace ftl {
     void throw_length_error() const;
   };
 
-#if defined(FTL_CPP17_FEATURES)
   template <class Iter>
   vector(Iter, Iter) -> vector<typename std::iterator_traits<Iter>::value_type>;
-#endif
 
   template <typename T, typename A>
   vector<T, A>::vector(const vector& rhs) :
@@ -233,9 +231,8 @@ namespace ftl {
   }
 
   template <typename T, typename A>
-  template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
-  vector<T, A>::vector(InputIt first, const InputIt last,
-      const allocator_type& alloc) :
+  template <std::input_iterator It>
+  vector<T, A>::vector(It first, const It last, const allocator_type& alloc) :
     vector(alloc)
   {
     if constexpr (std::forward_iterator<It>) {
@@ -545,8 +542,8 @@ namespace ftl {
   }
 
   template <typename T, typename A>
-  template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
-  void vector<T, A>::assign(const InputIt first, const InputIt last)
+  template <std::input_iterator It>
+  void vector<T, A>::assign(const It first, const It last)
   {
     vector(first, last, alloc_).swap(*this);
   }
@@ -747,8 +744,8 @@ namespace ftl {
   }
 
   template <typename T, typename A>
-  template <typename InputIt, detail::enable_if_input_iterator<InputIt>>
-  void vector<T, A>::construct_at_end(InputIt first, InputIt last)
+  template <std::input_iterator It>
+  void vector<T, A>::construct_at_end(It first, It last)
   {
     for (; first != last; ++first, ++end_) {
       AllocTraits::construct(alloc_, end_, *first);
@@ -851,43 +848,6 @@ namespace ftl {
     return is_same_size && std::equal(lhs.begin(), lhs.end(), rhs.begin());
   }
 
-#if !defined(FTL_CPP20_FEATURES)
-
-  template <typename T, typename A>
-  FTL_NODISCARD bool
-  operator!=(const vector<T, A>& lhs, const vector<T, A>& rhs)
-  {
-    return !(lhs == rhs);
-  }
-
-  template <typename T, typename A>
-  FTL_NODISCARD bool operator<(const vector<T, A>& lhs, const vector<T, A>& rhs)
-  {
-    return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(),
-        rhs.end());
-  }
-
-  template <typename T, typename A>
-  FTL_NODISCARD bool operator>(const vector<T, A>& lhs, const vector<T, A>& rhs)
-  {
-    return rhs < lhs;
-  }
-
-  template <typename T, typename A>
-  FTL_NODISCARD bool
-  operator<=(const vector<T, A>& lhs, const vector<T, A>& rhs)
-  {
-    return !(lhs > rhs);
-  }
-
-  template <typename T, typename A>
-  FTL_NODISCARD bool
-  operator>=(const vector<T, A>& lhs, const vector<T, A>& rhs)
-  {
-    return !(lhs < rhs);
-  }
-
-#else
   template <typename T, typename A>
   FTL_NODISCARD auto
   operator<=>(const vector<T, A>& lhs, const vector<T, A>& rhs)
@@ -895,7 +855,6 @@ namespace ftl {
     return std::lexicographical_compare_three_way(lhs.begin(), lhs.end(),
         rhs.begin(), rhs.end());
   }
-#endif
 }
 
 #endif

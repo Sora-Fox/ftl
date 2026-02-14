@@ -6,7 +6,6 @@
 #define FTL_INTERNAL_WRAP_ITERATOR_HPP
 
 #include <iterator>
-#include "config.hpp"
 
 namespace ftl {
   template <typename T, typename Allocator>
@@ -29,9 +28,7 @@ namespace ftl {
       using pointer = typename traits::pointer;
       using reference = typename traits::reference;
       using iterator_category = typename traits::iterator_category;
-#if defined(FTL_CPP20_FEATURES)
       using iterator_concept = typename traits::iterator_concept;
-#endif
 
     private:
       iterator_type i_;
