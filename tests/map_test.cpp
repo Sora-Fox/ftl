@@ -1,3 +1,4 @@
+#include <iterator>
 #include <numeric>
 #include <random>
 #include <vector>
@@ -576,4 +577,114 @@ TEST(MapComparison, LessOperatorDifferentValues)
   const MapT map2{ { 1, "" }, { 3, "" } };
   EXPECT_LT(map1, map2);
   test_comparison(map1, map2);
+}
+
+template <std::input_iterator Iter>
+std::vector<int> extract_keys(Iter begin, const Iter end)
+{
+  std::vector<int> keys;
+  for (; begin != end; ++begin) {
+    keys.push_back(begin->first);
+  }
+  return keys;
+}
+
+struct MapIteratorFixture : testing::Test
+{
+  MapT map;
+  std::vector<MapT::key_type> mapKeys;
+  std::vector<int> bfsExpected;
+
+  MapIteratorFixture() :
+    map(),
+    mapKeys(15),
+    bfsExpected{ 7, 3, 11, 1, 5, 9, 13, 0, 2, 4, 6, 8, 10, 12, 14 }
+  {
+    std::iota(mapKeys.begin(), mapKeys.end(), 0);
+    for (auto key : mapKeys) {
+      map.emplace(key, "");
+    }
+  }
+};
+
+TEST_F(MapIteratorFixture, Iterator)
+{
+  auto keys = extract_keys(map.begin(), map.end());
+  EXPECT_EQ(keys, mapKeys);
+  EXPECT_EQ(keys.size(), map.size());
+  EXPECT_TRUE(std::is_sorted(keys.begin(), keys.end(), map.key_comp()));
+}
+
+TEST_F(MapIteratorFixture, LmrIterator)
+{
+  auto keys = extract_keys(map.lmr_begin(), map.lmr_end());
+  EXPECT_EQ(keys, mapKeys);
+  EXPECT_EQ(keys.size(), map.size());
+  EXPECT_TRUE(std::is_sorted(keys.begin(), keys.end(), map.key_comp()));
+}
+
+TEST_F(MapIteratorFixture, RmlIterator)
+{
+  auto keys = extract_keys(map.rml_begin(), map.rml_end());
+  std::reverse(keys.begin(), keys.end());
+  EXPECT_EQ(keys, mapKeys);
+  EXPECT_EQ(keys.size(), map.size());
+  EXPECT_TRUE(std::is_sorted(keys.begin(), keys.end(), map.key_comp()));
+}
+
+TEST_F(MapIteratorFixture, BfsIterator)
+{
+  auto keys = extract_keys(map.bfs_begin(), map.bfs_end());
+  EXPECT_EQ(keys, bfsExpected);
+}
+
+TEST_F(MapIteratorFixture, IteratorToLmr)
+{
+  auto keys = extract_keys(MapT::lmr_iterator(map.begin()), map.lmr_end());
+  EXPECT_EQ(keys, mapKeys);
+  EXPECT_EQ(keys.size(), map.size());
+  EXPECT_TRUE(std::is_sorted(keys.begin(), keys.end(), map.key_comp()));
+}
+
+TEST_F(MapIteratorFixture, IteratorToRml)
+{
+  auto keys = extract_keys(MapT::rml_iterator(map.begin()), map.rml_end());
+  std::reverse(keys.begin(), keys.end());
+  EXPECT_EQ(keys, mapKeys);
+  EXPECT_EQ(keys.size(), map.size());
+  EXPECT_TRUE(std::is_sorted(keys.begin(), keys.end(), map.key_comp()));
+}
+
+TEST_F(MapIteratorFixture, IteratorToBfs)
+{
+  auto keys = extract_keys(MapT::bfs_iterator(map.begin()), map.bfs_end());
+  EXPECT_EQ(keys, bfsExpected);
+}
+
+TEST_F(MapIteratorFixture, LmrToIterator)
+{
+  auto keys = extract_keys(MapT::iterator(map.lmr_begin()), map.end());
+  EXPECT_EQ(keys, mapKeys);
+  EXPECT_EQ(keys.size(), map.size());
+  EXPECT_TRUE(std::is_sorted(keys.begin(), keys.end(), map.key_comp()));
+}
+
+TEST_F(MapIteratorFixture, RmlToIterator)
+{
+  auto begin = std::make_reverse_iterator(MapT::iterator(map.rml_begin()));
+  auto end = std::make_reverse_iterator(map.begin());
+  auto keys = extract_keys(begin, end);
+  std::reverse(keys.begin(), keys.end());
+  keys.push_back(MapT::iterator(map.rml_begin())->first);
+  EXPECT_EQ(keys, mapKeys);
+  EXPECT_EQ(keys.size(), map.size());
+  EXPECT_TRUE(std::is_sorted(keys.begin(), keys.end(), map.key_comp()));
+}
+
+TEST_F(MapIteratorFixture, BfsToIterator)
+{
+  const std::vector<int> expected = { 7, 8, 9, 10, 11, 12, 13, 14 };
+  auto keys = extract_keys(MapT::iterator(map.bfs_begin()), map.end());
+  EXPECT_EQ(keys, expected);
+  EXPECT_TRUE(std::is_sorted(keys.begin(), keys.end(), map.key_comp()));
 }
