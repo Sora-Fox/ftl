@@ -26,6 +26,7 @@ endfunction()
 
 set(TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/vector_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/map_test.cpp
 )
 
 foreach(TEST_FILE ${TEST_SOURCES})
