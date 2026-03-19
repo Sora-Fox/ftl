@@ -1441,7 +1441,7 @@ typename ftl::map<K, T, C>::Node* ftl::map<K, T, C>::merge(Node* node)
   using detail::get_left_sibling;
   using detail::get_right_sibling;
   Node* sibling =
-      detail::is_left(node) ? getRightSibling(node) : getLeftSibling(node);
+      detail::is_left(node) ? get_right_sibling(node) : get_left_sibling(node);
   sibling = emplace_to_node(sibling, std::move_if_noexcept(*parent->begin));
   if (detail::is_right(node)) {
     sibling->children[2] = node->children[0];
@@ -1481,7 +1481,8 @@ typename ftl::map<K, T, C>::Node* ftl::map<K, T, C>::give_to_sibling(Node* node)
   const auto getRight = detail::get_right_sibling<Node*>;
   const auto getLeft = detail::get_left_sibling<Node*>;
   Node* parent = node->parent;
-  Node* sibling = detail::is_left(node) ? get_right(node) : get_left(node);
+  Node* sibling = detail::is_left(node) ? detail::get_right_sibling(node)
+                                        : detail::get_left_sibling(node);
   pointer parentPtr = detail::is_right(node) ? parent->end - 1 : parent->begin;
   sibling = emplace_to_node(sibling, *parentPtr);
   parent = erase_from_node(parent, parentPtr);

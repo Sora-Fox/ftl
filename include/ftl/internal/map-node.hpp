@@ -145,7 +145,7 @@ NodePtr ftl::detail::get_right_sibling(NodePtr node) noexcept
 {
   assert(node && "GetSibling: nullptr node given");
   assert(node->parent && "GetSibling: root node given");
-  assert(!isRight(node) && "GetRightSibling: right node given");
+  assert(!is_right(node) && "GetRightSibling: right node given");
   const NodePtr parent = node->parent;
   if (is_left(node)) {
     return parent->children[1];
@@ -158,7 +158,7 @@ NodePtr ftl::detail::get_left_sibling(NodePtr node) noexcept
 {
   assert(node && "GetSibling: nullptr node given");
   assert(node->parent && "GetSibling: root node given");
-  assert(!isLeft(node) && "GetLeftSibling: left node given");
+  assert(!is_left(node) && "GetLeftSibling: left node given");
   const NodePtr parent = node->parent;
   if (is_right(node)) {
     return parent->children[size(parent) - 1];
@@ -288,7 +288,7 @@ void ftl::detail::emplace(NodePtr src, NodePtr dest, Cmp cmp, Args&&... args)
 {
   assert(src && dest && "Emplace: nullptr node given");
   assert(size(src) < maxValues && "Emplace: filled node given");
-  assert(isEmpty(dest) && "Emplace: non-empty node given");
+  assert(is_empty(dest) && "Emplace: non-empty node given");
   using value_type = std::remove_reference_t<decltype(*(src->begin))>;
   value_type val(std::forward<Args>(args)...);
   auto i = src->begin;
@@ -305,7 +305,7 @@ template <typename NodePtr>
 void ftl::detail::pop_back(NodePtr node) noexcept
 {
   assert(node && "PopBack: nullptr node given");
-  assert(!isEmpty(node) && "PopBack: non-empty node given");
+  assert(!is_empty(node) && "PopBack: non-empty node given");
   using value_type = std::remove_reference_t<decltype(*(node->begin))>;
   (node->end - 1)->~value_type();
   --node->end;
@@ -315,7 +315,7 @@ template <typename NodePtr, typename ValPtr>
 void ftl::detail::pop(NodePtr src, NodePtr dest, ValPtr val)
 {
   assert(src && dest && "Pop: nullptr node given");
-  assert(isEmpty(dest) && "Pop: non-empty node given");
+  assert(is_empty(dest) && "Pop: non-empty node given");
   assert(val >= src->begin && val < src->end && "Pop: invalid val given");
   auto i = src->begin;
   while (i != val) {
