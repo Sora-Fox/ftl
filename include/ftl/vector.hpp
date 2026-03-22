@@ -91,8 +91,10 @@ namespace ftl {
     FTL_NODISCARD const_reference front() const noexcept;
     FTL_NODISCARD reference back() noexcept;
     FTL_NODISCARD const_reference back() const noexcept;
-    FTL_NODISCARD pointer data() noexcept;
-    FTL_NODISCARD const_pointer data() const noexcept;
+    FTL_NODISCARD pointer data() & noexcept;
+    FTL_NODISCARD const_pointer data() const& noexcept;
+    FTL_NODISCARD pointer data() && noexcept;
+    FTL_NODISCARD const_pointer data() const&& noexcept;
 
     void assign(size_type, const_reference);
     template <std::input_iterator It>
@@ -519,15 +521,29 @@ namespace ftl {
   }
 
   template <typename T, typename A>
-  typename vector<T, A>::pointer vector<T, A>::data() noexcept
+  typename vector<T, A>::pointer vector<T, A>::data() & noexcept
   {
     return begin_;
   }
 
   template <typename T, typename A>
-  typename vector<T, A>::const_pointer vector<T, A>::data() const noexcept
+  typename vector<T, A>::const_pointer vector<T, A>::data() const& noexcept
   {
     return begin_;
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::pointer vector<T, A>::data() && noexcept
+  {
+    static_assert(false, "ftl::vector::data() called on rvalue vector");
+    return nullptr;
+  }
+
+  template <typename T, typename A>
+  typename vector<T, A>::const_pointer vector<T, A>::data() const&& noexcept
+  {
+    static_assert(false, "ftl::vector::data() called on rvalue vector");
+    return nullptr;
   }
 
   template <typename T, typename A>
