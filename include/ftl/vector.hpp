@@ -64,16 +64,18 @@ namespace ftl {
         AllocTraits::is_always_equal::value);
     vector& operator=(std::initializer_list<value_type>);
 
-    FTL_NODISCARD iterator begin() noexcept;
-    FTL_NODISCARD iterator end() noexcept;
-    FTL_NODISCARD const_iterator begin() const noexcept;
-    FTL_NODISCARD const_iterator end() const noexcept;
-    FTL_NODISCARD reverse_iterator rbegin() noexcept;
-    FTL_NODISCARD reverse_iterator rend() noexcept;
-    FTL_NODISCARD const_iterator cbegin() const noexcept;
-    FTL_NODISCARD const_iterator cend() const noexcept;
-    FTL_NODISCARD const_reverse_iterator crbegin() const noexcept;
-    FTL_NODISCARD const_reverse_iterator crend() const noexcept;
+    FTL_NODISCARD iterator begin() noexcept FTL_LIFETIMEBOUND;
+    FTL_NODISCARD iterator end() noexcept FTL_LIFETIMEBOUND;
+    FTL_NODISCARD const_iterator begin() const noexcept FTL_LIFETIMEBOUND;
+    FTL_NODISCARD const_iterator end() const noexcept FTL_LIFETIMEBOUND;
+    FTL_NODISCARD reverse_iterator rbegin() noexcept FTL_LIFETIMEBOUND;
+    FTL_NODISCARD reverse_iterator rend() noexcept FTL_LIFETIMEBOUND;
+    FTL_NODISCARD const_iterator cbegin() const noexcept FTL_LIFETIMEBOUND;
+    FTL_NODISCARD const_iterator cend() const noexcept FTL_LIFETIMEBOUND;
+    FTL_NODISCARD const_reverse_iterator
+    crbegin() const noexcept FTL_LIFETIMEBOUND;
+    FTL_NODISCARD const_reverse_iterator
+    crend() const noexcept FTL_LIFETIMEBOUND;
 
     FTL_NODISCARD size_type size() const noexcept;
     FTL_NODISCARD size_type max_size() const noexcept;
@@ -83,18 +85,16 @@ namespace ftl {
     void reserve(size_type);
     void shrink_to_fit();
 
-    FTL_NODISCARD reference operator[](size_type) noexcept;
+    FTL_NODISCARD reference operator[](size_type) noexcept FTL_LIFETIMEBOUND;
     FTL_NODISCARD const_reference operator[](size_type) const noexcept;
-    FTL_NODISCARD reference at(size_type);
+    FTL_NODISCARD reference at(size_type) FTL_LIFETIMEBOUND;
     FTL_NODISCARD const_reference at(size_type) const;
-    FTL_NODISCARD reference front() noexcept;
+    FTL_NODISCARD reference front() noexcept FTL_LIFETIMEBOUND;
     FTL_NODISCARD const_reference front() const noexcept;
-    FTL_NODISCARD reference back() noexcept;
+    FTL_NODISCARD reference back() noexcept FTL_LIFETIMEBOUND;
     FTL_NODISCARD const_reference back() const noexcept;
-    FTL_NODISCARD pointer data() & noexcept;
-    FTL_NODISCARD const_pointer data() const& noexcept;
-    FTL_NODISCARD pointer data() && noexcept;
-    FTL_NODISCARD const_pointer data() const&& noexcept;
+    FTL_NODISCARD pointer data() noexcept FTL_LIFETIMEBOUND;
+    FTL_NODISCARD const_pointer data() const noexcept FTL_LIFETIMEBOUND;
 
     void assign(size_type, const_reference);
     template <std::input_iterator It>
@@ -521,29 +521,15 @@ namespace ftl {
   }
 
   template <typename T, typename A>
-  typename vector<T, A>::pointer vector<T, A>::data() & noexcept
+  typename vector<T, A>::pointer vector<T, A>::data() noexcept
   {
     return begin_;
   }
 
   template <typename T, typename A>
-  typename vector<T, A>::const_pointer vector<T, A>::data() const& noexcept
+  typename vector<T, A>::const_pointer vector<T, A>::data() const noexcept
   {
     return begin_;
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::pointer vector<T, A>::data() && noexcept
-  {
-    static_assert(false, "ftl::vector::data() called on rvalue vector");
-    return nullptr;
-  }
-
-  template <typename T, typename A>
-  typename vector<T, A>::const_pointer vector<T, A>::data() const&& noexcept
-  {
-    static_assert(false, "ftl::vector::data() called on rvalue vector");
-    return nullptr;
   }
 
   template <typename T, typename A>

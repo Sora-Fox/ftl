@@ -22,4 +22,6 @@
 #  define FTL_THROW(expr) throw(expr)
 #endif
 
+#define FTL_LIFETIMEBOUND [[clang::lifetimebound]]
+
 #endif
