@@ -13,6 +13,7 @@
 #include <type_traits>
 #include <utility>
 #include <ftl/internal/map-node.hpp>
+#include "ftl/internal/config.hpp"
 
 namespace ftl {
   template <typename Key, typename T, typename Comparator = std::less<Key>>
@@ -81,79 +82,82 @@ namespace ftl {
     map& operator=(map&&) noexcept(is_nothrow_move_assignable);
     map& operator=(std::initializer_list<value_type>);
 
-    iterator begin() noexcept;
-    iterator end() noexcept;
-    const_iterator begin() const noexcept;
-    const_iterator end() const noexcept;
+    FTL_NODISCARD iterator begin() noexcept FTL_LIFETIMEBOUND;
+    FTL_NODISCARD iterator end() noexcept FTL_LIFETIMEBOUND;
+    FTL_NODISCARD const_iterator begin() const noexcept FTL_LIFETIMEBOUND;
+    FTL_NODISCARD const_iterator end() const noexcept FTL_LIFETIMEBOUND;
 
-    lmr_iterator lmr_begin();
-    lmr_iterator lmr_end();
-    const_lmr_iterator lmr_begin() const;
-    const_lmr_iterator lmr_end() const;
+    FTL_NODISCARD lmr_iterator lmr_begin() FTL_LIFETIMEBOUND;
+    FTL_NODISCARD lmr_iterator lmr_end() FTL_LIFETIMEBOUND;
+    FTL_NODISCARD const_lmr_iterator lmr_begin() const FTL_LIFETIMEBOUND;
+    FTL_NODISCARD const_lmr_iterator lmr_end() const FTL_LIFETIMEBOUND;
 
-    rml_iterator rml_begin();
-    rml_iterator rml_end();
-    const_rml_iterator rml_begin() const;
-    const_rml_iterator rml_end() const;
+    FTL_NODISCARD rml_iterator rml_begin() FTL_LIFETIMEBOUND;
+    FTL_NODISCARD rml_iterator rml_end() FTL_LIFETIMEBOUND;
+    FTL_NODISCARD const_rml_iterator rml_begin() const FTL_LIFETIMEBOUND;
+    FTL_NODISCARD const_rml_iterator rml_end() const FTL_LIFETIMEBOUND;
 
-    bfs_iterator bfs_begin();
-    bfs_iterator bfs_end();
-    const_bfs_iterator bfs_begin() const;
-    const_bfs_iterator bfs_end() const;
+    FTL_NODISCARD bfs_iterator bfs_begin() FTL_LIFETIMEBOUND;
+    FTL_NODISCARD bfs_iterator bfs_end() FTL_LIFETIMEBOUND;
+    FTL_NODISCARD const_bfs_iterator bfs_begin() const FTL_LIFETIMEBOUND;
+    FTL_NODISCARD const_bfs_iterator bfs_end() const FTL_LIFETIMEBOUND;
 
-    size_type size() const noexcept;
-    bool empty() const noexcept;
+    FTL_NODISCARD size_type size() const noexcept;
+    FTL_NODISCARD bool empty() const noexcept;
 
-    mapped_type& operator[](const key_type&);
-    mapped_type& operator[](key_type&&);
+    mapped_type& operator[](const key_type&) FTL_LIFETIMEBOUND;
+    mapped_type& operator[](key_type&&) FTL_LIFETIMEBOUND;
 
-    mapped_type& at(const key_type&);
-    const mapped_type& at(const key_type&) const;
+    mapped_type& at(const key_type&) FTL_LIFETIMEBOUND;
+    const mapped_type& at(const key_type&) const FTL_LIFETIMEBOUND;
 
-    std::pair<iterator, bool> insert(const_reference);
-    std::pair<iterator, bool> insert(value_type&&);
-    iterator insert(const_iterator, const_reference);
-    iterator insert(const_iterator, value_type&&);
+    std::pair<iterator, bool> insert(const_reference) FTL_LIFETIMEBOUND;
+    std::pair<iterator, bool> insert(value_type&&) FTL_LIFETIMEBOUND;
+    iterator insert(const_iterator, const_reference) FTL_LIFETIMEBOUND;
+    iterator insert(const_iterator, value_type&&) FTL_LIFETIMEBOUND;
     template <typename InputIt>
     void insert(InputIt, InputIt);
     void insert(std::initializer_list<value_type>);
 
-    iterator erase(const_iterator);
+    iterator erase(const_iterator) FTL_LIFETIMEBOUND;
     size_type erase(const key_type&);
-    iterator erase(const_iterator, const_iterator);
+    iterator erase(const_iterator, const_iterator) FTL_LIFETIMEBOUND;
 
     void clear() noexcept;
     void swap(map&) noexcept(is_nothrow_swappable);
 
     template <typename... Args>
-    std::pair<iterator, bool> emplace(Args&&...);
+    std::pair<iterator, bool> emplace(Args&&...) FTL_LIFETIMEBOUND;
     template <typename... Args>
-    iterator emplace_hint(const_iterator, Args&&...);
+    iterator emplace_hint(const_iterator, Args&&...) FTL_LIFETIMEBOUND;
 
-    key_compare key_comp() const;
-    value_compare value_comp() const;
+    FTL_NODISCARD key_compare key_comp() const;
+    FTL_NODISCARD value_compare value_comp() const;
 
-    iterator find(const key_type&);
-    const_iterator find(const key_type&) const;
+    FTL_NODISCARD iterator find(const key_type&) FTL_LIFETIMEBOUND;
+    FTL_NODISCARD const_iterator find(const key_type&) const FTL_LIFETIMEBOUND;
 
-    size_type count(const key_type&) const;
+    FTL_NODISCARD size_type count(const key_type&) const;
 
-    iterator lower_bound(const key_type&);
-    const_iterator lower_bound(const key_type&) const;
+    FTL_NODISCARD iterator lower_bound(const key_type&) FTL_LIFETIMEBOUND;
+    FTL_NODISCARD const_iterator lower_bound(
+        const key_type&) const FTL_LIFETIMEBOUND;
 
-    iterator upper_bound(const key_type&);
-    const_iterator upper_bound(const key_type&) const;
+    FTL_NODISCARD iterator upper_bound(const key_type&) FTL_LIFETIMEBOUND;
+    FTL_NODISCARD const_iterator upper_bound(
+        const key_type&) const FTL_LIFETIMEBOUND;
 
-    std::pair<iterator, iterator> equal_range(const key_type&);
-    std::pair<const_iterator, const_iterator>
-    equal_range(const key_type&) const;
+    FTL_NODISCARD std::pair<iterator, iterator>
+    equal_range(const key_type&) FTL_LIFETIMEBOUND;
+    FTL_NODISCARD std::pair<const_iterator, const_iterator>
+    equal_range(const key_type&) const FTL_LIFETIMEBOUND;
 
     template <typename F>
-    F traverseLmr(F) const;
+    F traverse_lmr(F) const;
     template <typename F>
-    F traverseRml(F) const;
+    F traverse_rml(F) const;
     template <typename F>
-    F traverseBreadth(F) const;
+    F traverse_breadth(F) const;
 
   private:
     using Node = detail::Node<value_type>;
@@ -164,35 +168,35 @@ namespace ftl {
     Comparator comparator_;
 
     void deallocate() noexcept;
-    Node* get_end_node() const noexcept;
+    FTL_NODISCARD Node* get_end_node() const noexcept;
 
     template <typename... Args>
     Node* emplace_to_node(Node*, Args&&...);
     template <typename... Args>
-    iterator emplace_to_empty(Args&&...);
-    Node* erase_from_node(Node*, const_pointer);
+    FTL_NODISCARD iterator emplace_to_empty(Args&&...);
+    FTL_NODISCARD Node* erase_from_node(Node*, const_pointer);
     void swap_vals(Node* lhs, pointer lhsPtr, Node* rhs, pointer rhsPtr);
 
-    Node* split(Node*);
-    std::tuple<Node*, Node*> split_in_two(const Node*);
+    FTL_NODISCARD Node* split(Node*);
+    FTL_NODISCARD std::tuple<Node*, Node*> split_in_two(const Node*);
     void
     split_children(const Node* src, Node* left, Node* right) const noexcept;
 
-    pointer find_key(const Node*, const key_type&) const;
-    Node* find_target(Node*, const key_type&) const;
-    Node* validate_hint(Node*, const key_type&) const;
+    FTL_NODISCARD pointer find_key(const Node*, const key_type&) const;
+    FTL_NODISCARD Node* find_target(Node*, const key_type&) const;
+    FTL_NODISCARD Node* validate_hint(Node*, const key_type&) const;
 
-    Node* fix_underflow(Node*);
-    Node* fix_root_underflow(Node*);
+    FTL_NODISCARD Node* fix_underflow(Node*);
+    FTL_NODISCARD Node* fix_root_underflow(Node*);
 
-    bool is_mergeable(const Node*) const;
-    Node* merge(Node*);
+    FTL_NODISCARD bool is_mergeable(const Node*) const;
+    FTL_NODISCARD Node* merge(Node*);
 
-    Node* redistribute(Node*);
-    Node* give_to_sibling(Node*);
-    Node* borrow_from_sibling(Node*);
-    Node* borrow_from_left(Node* target, Node* sibling);
-    Node* borrow_from_right(Node* target, Node* sibling);
+    FTL_NODISCARD Node* redistribute(Node*);
+    FTL_NODISCARD Node* give_to_sibling(Node*);
+    FTL_NODISCARD Node* borrow_from_sibling(Node*);
+    FTL_NODISCARD Node* borrow_from_left(Node* target, Node* sibling);
+    FTL_NODISCARD Node* borrow_from_right(Node* target, Node* sibling);
   };
 
   template <typename K, typename T, typename C>
@@ -855,7 +859,7 @@ ftl::map<K, T, C>::at(const key_type& key) const
 {
   auto it = find(key);
   if (it == end()) {
-    throw std::out_of_range("Key not found");
+    FTL_THROW(std::out_of_range("Key not found"));
   }
   return it->second;
 }
@@ -1110,21 +1114,21 @@ auto ftl::map<K, T, C>::equal_range(const key_type& key) const
 
 template <typename K, typename T, typename C>
 template <typename F>
-F ftl::map<K, T, C>::traverseLmr(F func) const
+F ftl::map<K, T, C>::traverse_lmr(F func) const
 {
   return std::for_each(lmr_begin(), lmr_end(), func);
 }
 
 template <typename K, typename T, typename C>
 template <typename F>
-F ftl::map<K, T, C>::traverseRml(F func) const
+F ftl::map<K, T, C>::traverse_rml(F func) const
 {
   return std::for_each(rml_begin(), rml_end(), func);
 }
 
 template <typename K, typename T, typename C>
 template <typename F>
-F ftl::map<K, T, C>::traverseBreadth(F func) const
+F ftl::map<K, T, C>::traverse_breadth(F func) const
 {
   return std::for_each(bfs_begin(), bfs_end(), func);
 }
